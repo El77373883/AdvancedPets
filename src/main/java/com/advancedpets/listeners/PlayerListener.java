@@ -16,9 +16,8 @@ public class PlayerListener implements Listener {
 
     public PlayerListener(AdvancedPets plugin) {
         this.plugin = plugin;
-        // ✅ Iniciar timer anti-anger para Warden
         startWardenAngerReset();
-        startCreeperfuseReset();
+        startCreeperFuseReset();
     }
 
     // ✅ Timer para resetear anger del Warden cada 2 segundos
@@ -33,7 +32,6 @@ public class PlayerListener implements Listener {
                     if (!(pet.getEntity() instanceof Warden))
                         continue;
                     Warden warden = (Warden) pet.getEntity();
-                    // ✅ Resetear anger con todos los jugadores
                     for (Player p : pet.getEntity()
                         .getWorld().getPlayers()) {
                         warden.setAnger(p, 0);
@@ -44,8 +42,9 @@ public class PlayerListener implements Listener {
         }.runTaskTimer(plugin, 20L, 40L);
     }
 
-    // ✅ Timer para evitar que el Creeper explote
-    private void startCreeperfuseReset() {
+    // ✅ CORREGIDO — Creeper no tiene getState() en 1.21.1
+    // Usar isIgnited() en su lugar
+    private void startCreeperFuseReset() {
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -56,11 +55,18 @@ public class PlayerListener implements Listener {
                     if (!(pet.getEntity() instanceof Creeper))
                         continue;
                     Creeper creeper = (Creeper) pet.getEntity();
-                    // ✅ Cancelar mecha si se encendió
-                    if (creeper.getState() ==
-                        Creeper.State.PRIMED) {
-                        creeper.setState(Creeper.State.IDLE);
+                    // ✅ CORREGIDO — usar isIgnited()
+                    if (creeper.isIgnited()) {
+                        // ✅ Cancelar la mecha
+                        creeper.setIgnited(false);
+                        // ✅ Resetear fuse ticks a máximo
+                        creeper.setMaxFuseTicks(
+                            Integer.MAX_VALUE);
+                        creeper.setFuseTicks(
+                            Integer.MAX_VALUE);
                     }
+                    // ✅ Siempre resetear target
+                    creeper.setTarget(null);
                 }
             }
         }.runTaskTimer(plugin, 5L, 5L);

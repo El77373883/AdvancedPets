@@ -56,9 +56,8 @@ public class BiomeManager {
             biomeName.contains("FROZEN") ||
             biomeName.contains("COLD")) {
             world.spawnParticle(Particle.SNOWFLAKE,
-                loc.clone().add(0,1,0),
+                loc.clone().add(0, 1, 0),
                 30, 0.5, 0.5, 0.5, 0.1);
-            // ✅ CORREGIDO — WEATHER_SNOW no existe
             world.playSound(loc,
                 Sound.BLOCK_SNOW_STEP, 0.5f, 1.5f);
             owner.sendMessage("§b§l[AdvancedPets] §e" +
@@ -72,7 +71,7 @@ public class BiomeManager {
             biomeName.contains("CRIMSON") ||
             biomeName.contains("WARPED")) {
             world.spawnParticle(Particle.FLAME,
-                loc.clone().add(0,1,0),
+                loc.clone().add(0, 1, 0),
                 30, 0.5, 0.5, 0.5, 0.1);
             world.spawnParticle(Particle.LAVA,
                 loc, 10, 0.3, 0.3, 0.3, 0);
@@ -87,7 +86,7 @@ public class BiomeManager {
             biomeName.contains("BEACH") ||
             biomeName.contains("RIVER")) {
             world.spawnParticle(Particle.BUBBLE_POP,
-                loc.clone().add(0,1,0),
+                loc.clone().add(0, 1, 0),
                 30, 0.5, 0.5, 0.5, 0.1);
             world.spawnParticle(Particle.SPLASH,
                 loc, 20, 0.5, 0.3, 0.5, 0.2);
@@ -102,7 +101,7 @@ public class BiomeManager {
             biomeName.contains("BADLANDS") ||
             biomeName.contains("SAVANNA")) {
             world.spawnParticle(Particle.BLOCK,
-                loc.clone().add(0,1,0), 30,
+                loc.clone().add(0, 1, 0), 30,
                 0.5, 0.5, 0.5,
                 Material.SAND.createBlockData());
             world.playSound(loc,
@@ -117,7 +116,7 @@ public class BiomeManager {
             biomeName.contains("TAIGA") ||
             biomeName.contains("GROVE")) {
             world.spawnParticle(Particle.CHERRY_LEAVES,
-                loc.clone().add(0,1,0),
+                loc.clone().add(0, 1, 0),
                 30, 0.5, 0.5, 0.5, 0.1);
             world.spawnParticle(Particle.HAPPY_VILLAGER,
                 loc, 10, 0.3, 0.3, 0.3, 0);
@@ -127,16 +126,16 @@ public class BiomeManager {
                 pet.getName() +
                 " §fdice: §a¡Amo me gusta este bosque! 🌲");
         }
-        // ✅ END
+        // ✅ END — CORREGIDO sonido
         else if (biomeName.contains("END")) {
             world.spawnParticle(Particle.DRAGON_BREATH,
-                loc.clone().add(0,1,0),
+                loc.clone().add(0, 1, 0),
                 30, 0.5, 0.5, 0.5, 0.1);
             world.spawnParticle(Particle.WITCH,
                 loc, 20, 0.3, 0.5, 0.3, 0.1);
-            // ✅ CORREGIDO — AMBIENT_THE_END_MOOD no existe
+            // ✅ CORREGIDO — usar ENTITY_ENDER_DRAGON_AMBIENT
             world.playSound(loc,
-                Sound.AMBIENT_THE_END_LOOP, 0.5f, 1f);
+                Sound.ENTITY_ENDER_DRAGON_AMBIENT, 0.5f, 1f);
             owner.sendMessage("§5§l[AdvancedPets] §e" +
                 pet.getName() +
                 " §fdice: §5¡Amo este lugar me da miedo! 👁️");
@@ -144,7 +143,7 @@ public class BiomeManager {
         // ✅ LLANURA / DEFAULT
         else {
             world.spawnParticle(Particle.HAPPY_VILLAGER,
-                loc.clone().add(0,1,0),
+                loc.clone().add(0, 1, 0),
                 10, 0.3, 0.3, 0.3, 0);
             world.playSound(loc,
                 Sound.BLOCK_GRASS_STEP, 0.5f, 1f);

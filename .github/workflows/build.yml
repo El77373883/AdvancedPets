@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
 
     steps:
       - name: ⬇️ Descargar repositorio
@@ -30,68 +30,24 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: 📦 Instalar Spigot via BuildTools
+      - name: 📦 Instalar Spigot desde repo publico
         run: |
-          mkdir -p ~/buildtools
-          cd ~/buildtools
-          wget -q -O BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
-          git config --global user.email "build@advancedpets.com"
-          git config --global user.name "AdvancedPets Builder"
-          java -jar BuildTools.jar --rev 1.21.1 --compile craftbukkit --nogui 2>&1
-          mvn install:install-file \
-            -Dfile=spigot-1.21.1.jar \
-            -DgroupId=org.spigotmc \
-            -DartifactId=spigot-api \
-            -Dversion=1.21.1-R0.1-SNAPSHOT \
-            -Dpackaging=jar \
-            -DgeneratePom=true
-
-      - name: 📦 Instalar FancyHolograms local
-        run: |
-          wget -q -O FancyHolograms.jar https://github.com/FancyPlugins/FancyHolograms/releases/download/2.3.0/FancyHolograms-2.3.0.jar || true
-          if [ -f FancyHolograms.jar ]; then
-            mvn install:install-file \
-              -Dfile=FancyHolograms.jar \
-              -DgroupId=de.oliver \
-              -DartifactId=FancyHolograms \
-              -Dversion=2.3.0 \
-              -Dpackaging=jar \
-              -DgeneratePom=true
-          fi
-
-      - name: 📦 Instalar ModelEngine local (skip si no está)
-        run: |
-          mvn install:install-file \
-            -Dfile=/dev/null \
-            -DgroupId=com.ticxo.modelengine \
-            -DartifactId=ModelEngine \
-            -Dversion=R4.0.4 \
-            -Dpackaging=jar \
-            -DgeneratePom=true || true
-
-      - name: 📦 Instalar MythicMobs local (skip si no está)
-        run: |
-          mvn install:install-file \
-            -Dfile=/dev/null \
-            -DgroupId=io.lumine \
-            -DartifactId=MythicMobs \
-            -Dversion=5.6.1 \
-            -Dpackaging=jar \
-            -DgeneratePom=true || true
+          mvn dependency:get \
+            -Dartifact=org.spigotmc:spigot-api:1.21.1-R0.1-SNAPSHOT \
+            -DremoteRepositories=spigot-repo::::https://hub.spigotmc.org/nexus/content/repositories/snapshots/ \
+            --no-transfer-progress
 
       - name: 🔨 Compilar con Maven
         run: mvn clean package -DskipTests --no-transfer-progress
 
       - name: ✅ Verificar JAR
-        run: |
-          echo "✅ Archivos generados:"
-          ls -la target/*.jar
+        run: ls -la target/
 
       - name: 📤 Subir JAR
         uses: actions/upload-artifact@v4
         with:
           name: AdvancedPets-1.0.0
-          path: target/AdvancedPets-1.0.0.jar
+          path: target/AdvancedPets-*.jar
           retention-days: 30
 
       - name: 🎉 Build exitoso

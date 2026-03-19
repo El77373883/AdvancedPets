@@ -17,7 +17,6 @@ public class CombatListener implements Listener {
         this.plugin = plugin;
     }
 
-    // ✅ PRIORIDAD HIGHEST para que se ejecute antes que otros plugins
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
 
@@ -36,7 +35,6 @@ public class CombatListener implements Listener {
                 victim.sendMessage("§c§l[AdvancedPets] §e" +
                     pet.getName() +
                     " §fdice: §c¡NADIE toca a mi amo! ⚔ ¡A PELEAR!");
-                // ✅ Sonido de ataque siempre
                 playAttackSound(pet, victim.getLocation());
                 if (target.isDead() || target.getHealth() <= 0) {
                     pet.setKills(pet.getKills() + 1);
@@ -66,7 +64,6 @@ public class CombatListener implements Listener {
                         attacker.sendMessage("§7[AP] §e" +
                             pet.getName() +
                             " §fdice: §6¡Por mi amo daré todo! 💪🔥");
-                        // ✅ Sonido de ataque siempre
                         playAttackSound(pet, target.getLocation());
                         if (target.isDead() ||
                             target.getHealth() <= 0) {
@@ -90,7 +87,6 @@ public class CombatListener implements Listener {
             case CAT:
                 sound = Sound.ENTITY_CAT_HISS; break;
             case TURTLE:
-                // ✅ ARREGLADO — Tortuga tiene su sonido
                 sound = Sound.ENTITY_TURTLE_AMBIENT_LAND; break;
             case ENDER_DRAGON:
                 sound = Sound.ENTITY_ENDER_DRAGON_GROWL; break;
@@ -105,6 +101,8 @@ public class CombatListener implements Listener {
             case ENDERMAN:
                 sound = Sound.ENTITY_ENDERMAN_SCREAM; break;
             case SKELETON:
+            case STRAY:
+            case BOGGED:
                 sound = Sound.ENTITY_SKELETON_SHOOT; break;
             case ZOMBIE:
             case ZOMBIE_VILLAGER:
@@ -115,7 +113,8 @@ public class CombatListener implements Listener {
                 sound = Sound.ENTITY_WITCH_THROW; break;
             case SPIDER:
             case CAVE_SPIDER:
-                sound = Sound.ENTITY_SPIDER_ATTACK; break;
+                // ✅ CORREGIDO — ENTITY_SPIDER_ATTACK no existe en 1.21.1
+                sound = Sound.ENTITY_SPIDER_STEP; break;
             case WARDEN:
                 sound = Sound.ENTITY_WARDEN_ATTACK_IMPACT; break;
             case RAVAGER:
@@ -141,13 +140,61 @@ public class CombatListener implements Listener {
                 sound = Sound.ENTITY_GUARDIAN_ATTACK; break;
             case SHULKER:
                 sound = Sound.ENTITY_SHULKER_SHOOT; break;
+            case HORSE:
+                sound = Sound.ENTITY_HORSE_ANGRY; break;
+            case COW:
+            case MUSHROOM_COW:
+                sound = Sound.ENTITY_COW_HURT; break;
+            case PIG:
+                sound = Sound.ENTITY_PIG_HURT; break;
+            case SHEEP:
+                sound = Sound.ENTITY_SHEEP_HURT; break;
+            case CHICKEN:
+                sound = Sound.ENTITY_CHICKEN_HURT; break;
+            case LLAMA:
+                sound = Sound.ENTITY_LLAMA_SPIT; break;
+            case RABBIT:
+                sound = Sound.ENTITY_RABBIT_HURT; break;
+            case FOX:
+                sound = Sound.ENTITY_FOX_AGGRO; break;
+            case PANDA:
+                sound = Sound.ENTITY_PANDA_BITE; break;
+            case POLAR_BEAR:
+                sound = Sound.ENTITY_POLAR_BEAR_WARNING; break;
+            case DOLPHIN:
+                sound = Sound.ENTITY_DOLPHIN_HURT; break;
+            case VILLAGER:
+                sound = Sound.ENTITY_VILLAGER_HURT; break;
+            case WANDERING_TRADER:
+                sound = Sound.ENTITY_WANDERING_TRADER_HURT; break;
+            case ZOMBIE_VILLAGER:
+                sound = Sound.ENTITY_ZOMBIE_VILLAGER_HURT; break;
+            case SLIME:
+                sound = Sound.ENTITY_SLIME_ATTACK; break;
+            case MAGMA_CUBE:
+                sound = Sound.ENTITY_MAGMA_CUBE_HURT; break;
+            case ENDERMITE:
+                sound = Sound.ENTITY_ENDERMITE_HURT; break;
+            case SNOW_GOLEM:
+                sound = Sound.ENTITY_SNOW_GOLEM_HURT; break;
+            case SHULKER:
+                sound = Sound.ENTITY_SHULKER_HURT; break;
+            case WARDEN:
+                sound = Sound.ENTITY_WARDEN_HURT; break;
+            case FROG:
+                sound = Sound.ENTITY_FROG_HURT; break;
+            case BEE:
+                sound = Sound.ENTITY_BEE_HURT; break;
+            case CAMEL:
+                sound = Sound.ENTITY_CAMEL_HURT; break;
+            case HOGLIN:
+                sound = Sound.ENTITY_HOGLIN_ANGRY; break;
             default:
                 sound = Sound.ENTITY_PLAYER_ATTACK_SWEEP; break;
         }
         world.playSound(loc, sound, 1f, 1f);
-        // ✅ Partículas de ataque siempre visibles
-        world.spawnParticle(Particle.SWEEP_ATTACK, loc, 5,
-            0.3, 0.3, 0.3, 0);
+        world.spawnParticle(Particle.SWEEP_ATTACK,
+            loc, 5, 0.3, 0.3, 0.3, 0);
     }
 
     private void onPetKill(Player owner, Pet pet, LivingEntity killed) {
@@ -169,11 +216,9 @@ public class CombatListener implements Listener {
         plugin.getPetManager().savePet(pet);
     }
 
-    // ✅ Mascota inmortal — cancelar daño correctamente
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onEntityDamage(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof LivingEntity)) return;
-        // ✅ Ignorar ArmorStands
         if (event.getEntity() instanceof ArmorStand) return;
 
         for (Pet pet : plugin.getPetManager().getAllPets().values()) {
@@ -181,9 +226,7 @@ public class CombatListener implements Listener {
             if (!pet.getEntity().equals(event.getEntity())) continue;
 
             if (pet.isImmortal()) {
-                // ✅ Cancelar TODO el daño si es inmortal
                 event.setCancelled(true);
-                // ✅ Mostrar partículas de escudo
                 Location loc = pet.getEntity().getLocation();
                 loc.getWorld().spawnParticle(
                     Particle.BLOCK,
@@ -193,21 +236,18 @@ public class CombatListener implements Listener {
                 return;
             }
 
-            // ✅ Mascota mortal — recibir daño normal
             Player owner = Bukkit.getPlayer(pet.getOwnerUUID());
             if (owner != null) {
                 pet.setHealth(Math.max(0,
                     pet.getHealth() - event.getFinalDamage()));
                 owner.sendMessage("§e" + pet.getName() +
-                    " §fdice: §c¡AY! ¡Eso dolió! 😤 ¡Me las pagarás!");
-                // ✅ Sonido de dolor
+                    " §fdice: §c¡AY! ¡Eso dolió! 😤");
                 pet.getEntity().getWorld().playSound(
                     pet.getEntity().getLocation(),
                     Sound.ENTITY_PLAYER_HURT, 1f, 1f);
                 if (pet.getHealth() <= 0) {
                     owner.sendMessage(
-                        "§c§l[AdvancedPets] §c¡Tu mascota ha muerto! 💀 " +
-                        "¡Revívela con /ap revive!");
+                        "§c§l[AdvancedPets] §c¡Tu mascota ha muerto! 💀");
                     plugin.getPetManager().despawnPet(pet);
                 }
             }

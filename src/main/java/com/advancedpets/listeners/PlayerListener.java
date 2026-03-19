@@ -20,7 +20,6 @@ public class PlayerListener implements Listener {
         startCreeperFuseReset();
     }
 
-    // ✅ Timer para resetear anger del Warden cada 2 segundos
     private void startWardenAngerReset() {
         new BukkitRunnable() {
             @Override
@@ -42,8 +41,7 @@ public class PlayerListener implements Listener {
         }.runTaskTimer(plugin, 20L, 40L);
     }
 
-    // ✅ CORREGIDO — Creeper no tiene getState() en 1.21.1
-    // Usar isIgnited() en su lugar
+    // ✅ CORREGIDO — solo usar métodos que existen en 1.21.1
     private void startCreeperFuseReset() {
         new BukkitRunnable() {
             @Override
@@ -55,17 +53,10 @@ public class PlayerListener implements Listener {
                     if (!(pet.getEntity() instanceof Creeper))
                         continue;
                     Creeper creeper = (Creeper) pet.getEntity();
-                    // ✅ CORREGIDO — usar isIgnited()
-                    if (creeper.isIgnited()) {
-                        // ✅ Cancelar la mecha
-                        creeper.setIgnited(false);
-                        // ✅ Resetear fuse ticks a máximo
-                        creeper.setMaxFuseTicks(
-                            Integer.MAX_VALUE);
-                        creeper.setFuseTicks(
-                            Integer.MAX_VALUE);
-                    }
-                    // ✅ Siempre resetear target
+                    // ✅ Solo resetear fuse y target
+                    // sin usar isIgnited/setIgnited
+                    creeper.setMaxFuseTicks(Integer.MAX_VALUE);
+                    creeper.setFuseTicks(Integer.MAX_VALUE);
                     creeper.setTarget(null);
                 }
             }

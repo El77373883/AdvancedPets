@@ -36,57 +36,46 @@
             <id>protocollib</id>
             <url>https://repo.dmulloy2.net/repository/public/</url>
         </repository>
-        <repository>
-            <id>modelengine</id>
-            <url>https://repo.nexomc.com/releases/</url>
-        </repository>
-        <repository>
-            <id>mythicmobs</id>
-            <url>https://mvn.lumine.io/repository/maven-public/</url>
-        </repository>
     </repositories>
 
     <dependencies>
+        <!-- Spigot API -->
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
             <version>1.21.1-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- Vault -->
         <dependency>
             <groupId>com.github.MilkBowl</groupId>
             <artifactId>VaultAPI</artifactId>
             <version>1.7</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- PlaceholderAPI -->
         <dependency>
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
             <version>2.11.6</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- FancyHolograms -->
         <dependency>
             <groupId>de.oliver</groupId>
             <artifactId>FancyHolograms</artifactId>
             <version>2.3.0</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- ProtocolLib -->
         <dependency>
             <groupId>com.comphenix.protocol</groupId>
             <artifactId>ProtocolLib</artifactId>
-            <version>5.1.0</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.ticxo.modelengine</groupId>
-            <artifactId>ModelEngine</artifactId>
-            <version>R4.0.4</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.lumine</groupId>
-            <artifactId>MythicMobs</artifactId>
-            <version>5.6.1</version>
+            <version>5.3.0</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
@@ -101,6 +90,19 @@
                     <execution>
                         <phase>package</phase>
                         <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

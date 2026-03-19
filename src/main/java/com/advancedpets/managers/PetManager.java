@@ -112,7 +112,8 @@ public class PetManager {
                         " §f(" + pet.getEntityType().name() + ")");
                     p.sendMessage("§6§l⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡");
                     p.sendMessage("§r");
-                    p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+                    p.playSound(p.getLocation(),
+                        Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
                 }
                 world.spawnParticle(Particle.FIREWORK, location, 200, 2, 2, 2, 0.5);
             }
@@ -141,27 +142,20 @@ public class PetManager {
                     int followDist = plugin.getConfig()
                         .getInt("pets.follow-distance", 3);
 
-                    if (dist > teleportDist) {
-                        // Teletransportar si está muy lejos
-                        pet.getEntity().teleport(
-                            owner.getLocation().add(1, 0, 1));
-                    } else if (dist > followDist) {
-                        // ✅ CORREGIDO: usar navigate en lugar de getPathfinder
-                        if (pet.getEntity() instanceof Mob) {
-                            Mob mob = (Mob) pet.getEntity();
-                            try {
-                                mob.getPathfinder().moveTo(owner, 1.0);
-                            } catch (Exception e) {
-                                // Si falla el pathfinder, teletransportar
-                                pet.getEntity().teleport(
-                                    owner.getLocation().add(1, 0, 1));
-                            }
-                        }
+                    if (dist > followDist) {
+                        // ✅ CORREGIDO: teletransportar directamente
+                        // sin usar getPathfinder() que no existe en 1.21.1
+                        Location target = owner.getLocation().clone();
+                        target.add(
+                            (Math.random() - 0.5) * 2,
+                            0,
+                            (Math.random() - 0.5) * 2);
+                        pet.getEntity().teleport(target);
                     }
                     plugin.getHologramManager().updateHologram(pet);
                 }
             }
-        }.runTaskTimer(plugin, 20L, 10L);
+        }.runTaskTimer(plugin, 20L, 20L);
     }
 
     private void startHungerTimer() {
@@ -178,12 +172,14 @@ public class PetManager {
                     if (owner == null) continue;
                     if (pet.getHunger() <= 50 && pet.getHunger() > 20) {
                         pet.setMood(Pet.Mood.HUNGRY);
-                        owner.sendMessage("§6§l[AdvancedPets] §e" + pet.getName() +
+                        owner.sendMessage("§6§l[AdvancedPets] §e" +
+                            pet.getName() +
                             " §fdice: §7¡Amo, tengo hambre! 🍖 Dame algo de comer...");
                         owner.playSound(owner.getLocation(),
                             Sound.ENTITY_WOLF_WHINE, 1f, 1f);
                     } else if (pet.getHunger() <= 20) {
-                        owner.sendMessage("§c§l[AdvancedPets] §e" + pet.getName() +
+                        owner.sendMessage("§c§l[AdvancedPets] §e" +
+                            pet.getName() +
                             " §fdice: §c¡Me muero de hambre! 😭 ¡Aliméntame ya!");
                         owner.playSound(owner.getLocation(),
                             Sound.ENTITY_WOLF_HURT, 1f, 0.8f);
@@ -209,8 +205,8 @@ public class PetManager {
                             "§b¡Siempre estaré contigo amo! 🐾",
                             "§d¡Oye amo! ¿Jugamos? 🎮"
                         };
-                        owner.sendMessage("§6§l[AdvancedPets] §e" + pet.getName() +
-                            " §fdice: " +
+                        owner.sendMessage("§6§l[AdvancedPets] §e" +
+                            pet.getName() + " §fdice: " +
                             messages[new Random().nextInt(messages.length)]);
                     }
                 }
@@ -323,7 +319,8 @@ public class PetManager {
             case RAINBOW:
                 world.spawnParticle(Particle.DUST, loc, 5, 0.3, 0.5, 0.3,
                     new Particle.DustOptions(
-                        Color.fromRGB(new Random().nextInt(255),
+                        Color.fromRGB(
+                            new Random().nextInt(255),
                             new Random().nextInt(255),
                             new Random().nextInt(255)), 1.5f));
                 break;
@@ -344,8 +341,7 @@ public class PetManager {
             loc.getWorld().spawnParticle(Particle.HEART,
                 loc.add(0, 2, 0), 10, 0.5, 0.5, 0.5, 0);
         }
-        owner.playSound(owner.getLocation(),
-            Sound.ENTITY_GENERIC_EAT, 1f, 1f);
+        owner.playSound(owner.getLocation(), Sound.ENTITY_GENERIC_EAT, 1f, 1f);
         Bukkit.getScheduler().runTaskLater(plugin, () ->
             owner.playSound(owner.getLocation(),
                 Sound.ENTITY_CAT_PURR, 1f, 1f), 20L);

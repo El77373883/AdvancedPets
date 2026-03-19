@@ -96,58 +96,43 @@ public class InspectGUI implements Listener {
         inv.setItem(28, makeInfo(Material.HEART_OF_THE_SEA,
             "§f§lSALUD",
             pet.isImmortal() ? "§aINMORTAL" : "§cMORTAL"));
-
-        // Mochila
         inv.setItem(29, makeInfo(Material.CHEST,
             "§f§lMOCHILA", "§727 slots"));
-
-        // Logros
         inv.setItem(30, makeInfo(Material.TOTEM_OF_UNDYING,
             "§f§lLOGROS", "§6" +
             plugin.getAchievementManager()
                 .getAchievementCount(pet.getOwnerUUID()) + " logros"));
-
-        // Dueño
         inv.setItem(31, makeInfo(Material.PLAYER_HEAD,
             "§f§lDUEÑO", "§e" + pet.getOwnerName()));
 
-        // Clan ✅ CORREGIDO Material.BANNER → Material.WHITE_BANNER
+        // ✅ CORREGIDO: WHITE_BANNER en lugar de BANNER
         if (pet.getClanName() != null) {
             inv.setItem(32, makeInfo(Material.WHITE_BANNER,
                 "§f§lCLAN", "§5" + pet.getClanName()));
         }
 
-        // Modo trabajo
         inv.setItem(33, makeInfo(Material.IRON_PICKAXE,
             "§f§lMODO TRABAJO",
             pet.isWorkMode() ? "§aACTIVO ✔" : "§cDESACTIVO ✘"));
 
-        // Partícula activa
         inv.setItem(34, makeInfo(Material.FIREWORK_STAR,
             "§f§lEFECTO ULTRA",
-            "§d" + UltraShopGUI.getActiveEffect(plugin,
-                Bukkit.getOfflinePlayer(pet.getOwnerUUID()).getPlayer() != null ?
-                Bukkit.getPlayer(pet.getOwnerUUID()) :
-                player)));
+            "§d" + getUltraEffect()));
 
-        // Barra de vida visual
+        // Barras visuales
         inv.setItem(37, makeInfo(Material.REDSTONE,
             "§f§lBARRA DE VIDA", buildHealthBar(pet)));
-
-        // XP visual
         inv.setItem(38, makeInfo(Material.EXPERIENCE_BOTTLE,
             "§f§lBARRA DE XP", buildXPBar(pet)));
-
-        // Hambre visual
         inv.setItem(39, makeInfo(Material.APPLE,
             "§f§lBARRA HAMBRE", buildHungerBar(pet)));
 
-        // Sleeping
-        inv.setItem(40, makeInfo(Material.BED,
+        // ✅ CORREGIDO: RED_BED en lugar de BED
+        inv.setItem(40, makeInfo(Material.RED_BED,
             "§f§lDURMIENDO",
             pet.isSleeping() ? "§8§lSÍ 💤" : "§aDespierto ☀"));
 
-        // Cerrar — vidrio rojo centro abajo
+        // Cerrar
         ItemStack close = new ItemStack(Material.RED_STAINED_GLASS_PANE);
         ItemMeta cm = close.getItemMeta();
         cm.setDisplayName(color("§c§l✘ CERRAR"));
@@ -173,6 +158,18 @@ public class InspectGUI implements Listener {
         if (event.getSlot() == 49) clicker.closeInventory();
     }
 
+    private String getUltraEffect() {
+        try {
+            Player owner = Bukkit.getPlayer(pet.getOwnerUUID());
+            if (owner != null) {
+                return UltraShopGUI.getActiveEffect(plugin, owner);
+            }
+        } catch (Exception e) {
+            // ignorar
+        }
+        return "NONE";
+    }
+
     private String buildHealthBar(Pet pet) {
         int bars = 10;
         int filled = (int) ((pet.getHealth() / pet.getMaxHealth()) * bars);
@@ -181,7 +178,8 @@ public class InspectGUI implements Listener {
             if (i == filled) bar.append("§7");
             bar.append("█");
         }
-        return bar + " §f" + (int)pet.getHealth() + "/" + (int)pet.getMaxHealth();
+        return bar + " §f" + (int)pet.getHealth() +
+            "/" + (int)pet.getMaxHealth();
     }
 
     private String buildXPBar(Pet pet) {
@@ -192,7 +190,8 @@ public class InspectGUI implements Listener {
             if (i == filled) bar.append("§7");
             bar.append("█");
         }
-        return bar + " §f" + (int)pet.getXp() + "/" + (int)pet.getXpNeeded();
+        return bar + " §f" + (int)pet.getXp() +
+            "/" + (int)pet.getXpNeeded();
     }
 
     private String buildHungerBar(Pet pet) {

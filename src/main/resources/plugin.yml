@@ -14,6 +14,8 @@ depend:
 softdepend:
   - PlaceholderAPI
   - EssentialsX
+  - ModelEngine
+  - MythicMobs
 
 commands:
   ap:
@@ -46,6 +48,9 @@ permissions:
   advancedpets.rent:
     description: Alquilar mascotas
     default: true
+  advancedpets.models:
+    description: Usar modelos custom
+    default: true
   advancedpets.admin:
     description: Comandos de administrador
     default: op
@@ -58,6 +63,9 @@ permissions:
   advancedpets.admin.particles:
     description: Controlar particulas globalmente
     default: op
+  advancedpets.admin.models:
+    description: Gestionar modelos globalmente
+    default: op
   advancedpets.legendary:
     description: Comprar mascotas legendarias
     default: true
@@ -66,4 +74,7 @@ permissions:
     default: true
   advancedpets.rare:
     description: Comprar mascotas raras
+    default: true
+  advancedpets.ultrashop:
+    description: Acceder a la tienda ultra premium
     default: true

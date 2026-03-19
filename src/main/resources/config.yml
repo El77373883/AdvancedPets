@@ -32,6 +32,59 @@ holograms:
   show-kills: true
   show-xp: true
 
+modelengine:
+  enabled: true
+  default-models:
+    WOLF: advpet_wolf
+    CAT: advpet_cat
+    HORSE: advpet_horse
+    COW: advpet_cow
+    PIG: advpet_pig
+    SHEEP: advpet_sheep
+    CHICKEN: advpet_chicken
+    LLAMA: advpet_llama
+    RABBIT: advpet_rabbit
+    FOX: advpet_fox
+    TURTLE: advpet_turtle
+    BEE: advpet_bee
+    PANDA: advpet_panda
+    PARROT: advpet_parrot
+    DOLPHIN: advpet_dolphin
+    FROG: advpet_frog
+    CAMEL: advpet_camel
+    ARMADILLO: advpet_armadillo
+    IRON_GOLEM: advpet_iron_golem
+    POLAR_BEAR: advpet_polar_bear
+    ZOMBIE_VILLAGER: advpet_zombie_villager
+    SPIDER: advpet_spider
+    CAVE_SPIDER: advpet_cave_spider
+    PHANTOM: advpet_phantom
+    PIGLIN: advpet_piglin
+    SNOW_GOLEM: advpet_snow_golem
+    SKELETON: advpet_skeleton
+    ZOMBIE: advpet_zombie
+    CREEPER: advpet_creeper
+    BLAZE: advpet_phoenix
+    ENDERMAN: advpet_enderman
+    WITCH: advpet_witch
+    GUARDIAN: advpet_guardian
+    PIGLIN_BRUTE: advpet_piglin_brute
+    HOGLIN: advpet_hoglin
+    RAVAGER: advpet_ravager
+    VEX: advpet_vex
+    VINDICATOR: advpet_vindicator
+    SHULKER: advpet_shulker
+    MAGMA_CUBE: advpet_magma_cube
+    SLIME: advpet_slime
+    ELDER_GUARDIAN: advpet_elder_guardian
+    ENDER_DRAGON: advpet_dragon
+    WITHER: advpet_wither
+    WARDEN: advpet_warden
+
+mythicmobs:
+  enabled: true
+  xp-multiplier: 2.0
+
 pets:
   max-per-player: 1
   follow-distance: 3
@@ -100,6 +153,21 @@ prices:
     WITHER: 20000
     PHOENIX: 15000
     WARDEN: 22000
+
+ultra-effects:
+  prices:
+    LIGHTNING_STORM: 50000
+    FIRE_APOCALYPSE: 45000
+    DARK_SOUL: 55000
+    DEATH_TORNADO: 48000
+    DRAGON_ROAR: 60000
+    STAR_NOVA: 52000
+    TSUNAMI: 44000
+    SUPERNOVA: 65000
+    DEATH_CURSE: 58000
+    RAINBOW_EXPLOSION: 47000
+    ROYAL_CROWN: 70000
+    DARK_ECLIPSE: 75000
 
 damage:
   default: 10
@@ -178,3 +246,6 @@ messages:
   pet-purchased: "&a&lCompraste una mascota nueva!"
   pet-cancelled: "&cCompra cancelada!"
   reloaded: "&aPlugin recargado correctamente!"
+  model-applied: "&d&lModelo aplicado correctamente!"
+  model-removed: "&cModelo quitado correctamente!"
+  mythicmob-kill: "&6+XP DOBLE por matar MythicMob!"

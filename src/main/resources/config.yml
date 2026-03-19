@@ -107,4 +107,74 @@ damage:
   max: 30
 
 xp:
-  per-kill​​​​​​​​​​​​​​​​
+  per-kill: 10
+  per-mine: 5
+  per-harvest: 5
+  per-level: 100
+
+works:
+  mine:
+    enabled: true
+    interval-seconds: 30
+    radius: 5
+  farm:
+    enabled: true
+    interval-seconds: 20
+    radius: 10
+  harvest:
+    enabled: true
+    interval-seconds: 25
+    radius: 8
+  collect:
+    enabled: true
+    interval-seconds: 10
+    radius: 5
+  build:
+    enabled: true
+    interval-seconds: 60
+  cook:
+    enabled: true
+    interval-seconds: 30
+  explore:
+    enabled: true
+    interval-seconds: 120
+    radius: 30
+  pvp:
+    enabled: true
+  chop:
+    enabled: true
+    interval-seconds: 30
+    radius: 5
+
+base-protection:
+  enabled: true
+  radius: 20
+
+social:
+  adoption: true
+  rental: true
+  betting: true
+
+missions:
+  daily-reward: 500
+
+birthday:
+  enabled: true
+
+clan:
+  max-size: 3
+
+worlds:
+  blacklist:
+    - world_nether_example
+
+messages:
+  no-permission: "&cNo tienes permiso para hacer esto!"
+  no-money: "&cNo tienes suficiente dinero!"
+  pet-summoned: "&a&lTu mascota ha sido invocada!"
+  pet-dismissed: "&e&lMascota guardada!"
+  pet-renamed: "&aMascota renombrada correctamente!"
+  pet-deleted: "&cMascota eliminada!"
+  pet-purchased: "&a&lCompraste una mascota nueva!"
+  pet-cancelled: "&cCompra cancelada!"
+  reloaded: "&aPlugin recargado correctamente!"

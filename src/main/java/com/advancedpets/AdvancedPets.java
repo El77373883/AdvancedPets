@@ -23,6 +23,7 @@ public class AdvancedPets extends JavaPlugin {
     private MissionManager missionManager;
     private AchievementManager achievementManager;
     private PlaceholderManager placeholderManager;
+    private ModelManager modelManager;
     private MessageUtils messageUtils;
 
     @Override
@@ -34,11 +35,12 @@ public class AdvancedPets extends JavaPlugin {
         printStartupMessage();
 
         if (!setupEconomy()) {
-            getLogger().severe("Vault no encontrado! Desactivando AdvancedPets...");
+            getLogger().severe("§cVault no encontrado! Desactivando AdvancedPets...");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
 
+        // Inicializar managers
         petManager = new PetManager(this);
         economyManager = new EconomyManager(this, economy);
         hologramManager = new HologramManager(this);
@@ -46,28 +48,47 @@ public class AdvancedPets extends JavaPlugin {
         clanManager = new ClanManager(this);
         missionManager = new MissionManager(this);
         achievementManager = new AchievementManager(this);
+        modelManager = new ModelManager(this);
 
+        // PlaceholderAPI
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             placeholderManager = new PlaceholderManager(this);
             placeholderManager.register();
-            getLogger().info("PlaceholderAPI conectado correctamente!");
+            getLogger().info("§aPlaceholderAPI conectado correctamente!");
         }
 
+        // ModelEngine
+        if (Bukkit.getPluginManager().getPlugin("ModelEngine") != null) {
+            getLogger().info("§aModelEngine conectado correctamente!");
+        } else {
+            getLogger().warning("§eModelEngine no encontrado. Modelos custom desactivados.");
+        }
+
+        // MythicMobs
+        if (Bukkit.getPluginManager().getPlugin("MythicMobs") != null) {
+            getLogger().info("§aMythicMobs conectado correctamente!");
+        } else {
+            getLogger().warning("§eMythicMobs no encontrado.");
+        }
+
+        // Registrar listeners
         getServer().getPluginManager().registerEvents(new PetListener(this), this);
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
         getServer().getPluginManager().registerEvents(new CombatListener(this), this);
 
+        // Registrar comandos
         getCommand("ap").setExecutor(new PetCommand(this));
         getCommand("ap").setTabCompleter(new PetCommand(this));
 
-        getLogger().info("AdvancedPets activado correctamente!");
+        getLogger().info("§aAdvancedPets activado correctamente!");
     }
 
     @Override
     public void onDisable() {
         if (petManager != null) petManager.saveAllPets();
         if (hologramManager != null) hologramManager.removeAllHolograms();
-        getLogger().info("AdvancedPets desactivado. Hasta luego!");
+        if (modelManager != null) modelManager.removeAllModels();
+        getLogger().info("§eAdvancedPets desactivado. Hasta luego!");
     }
 
     private void printStartupMessage() {
@@ -75,9 +96,19 @@ public class AdvancedPets extends JavaPlugin {
         Bukkit.getConsoleSender().sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
         Bukkit.getConsoleSender().sendMessage("§e§l       ⭐ ADVANCED PETS PREMIUM ⭐");
         Bukkit.getConsoleSender().sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
-        Bukkit.getConsoleSender().sendMessage("§f  Plugin: §eAdvancedPets §6v1.0.0");
-        Bukkit.getConsoleSender().sendMessage("§f  Autor:  §6§lsoyadrianyt001");
-        Bukkit.getConsoleSender().sendMessage("§f  Estado: §a§lACTIVADO ✔");
+        Bukkit.getConsoleSender().sendMessage("§f  Plugin:  §eAdvancedPets §6v1.0.0");
+        Bukkit.getConsoleSender().sendMessage("§f  Autor:   §6§lsoyadrianyt001");
+        Bukkit.getConsoleSender().sendMessage("§f  Estado:  §a§lACTIVADO ✔");
+        Bukkit.getConsoleSender().sendMessage("§f  Vault:   §a§lCONECTADO ✔");
+        Bukkit.getConsoleSender().sendMessage("§f  ModelEng: " +
+            (Bukkit.getPluginManager().getPlugin("ModelEngine") != null ?
+            "§a§lCONECTADO ✔" : "§c§lNO ENCONTRADO ✘"));
+        Bukkit.getConsoleSender().sendMessage("§f  MythicM: " +
+            (Bukkit.getPluginManager().getPlugin("MythicMobs") != null ?
+            "§a§lCONECTADO ✔" : "§c§lNO ENCONTRADO ✘"));
+        Bukkit.getConsoleSender().sendMessage("§f  PAPI:    " +
+            (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null ?
+            "§a§lCONECTADO ✔" : "§e§lOPCIONAL"));
         Bukkit.getConsoleSender().sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
         Bukkit.getConsoleSender().sendMessage("§r");
     }
@@ -91,6 +122,7 @@ public class AdvancedPets extends JavaPlugin {
         return economy != null;
     }
 
+    // Getters
     public static AdvancedPets getInstance() { return instance; }
     public Economy getEconomy() { return economy; }
     public PetManager getPetManager() { return petManager; }
@@ -100,5 +132,6 @@ public class AdvancedPets extends JavaPlugin {
     public ClanManager getClanManager() { return clanManager; }
     public MissionManager getMissionManager() { return missionManager; }
     public AchievementManager getAchievementManager() { return achievementManager; }
+    public ModelManager getModelManager() { return modelManager; }
     public MessageUtils getMessageUtils() { return messageUtils; }
 }

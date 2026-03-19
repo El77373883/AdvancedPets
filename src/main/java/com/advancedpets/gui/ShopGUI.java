@@ -17,10 +17,11 @@ public class ShopGUI implements Listener {
     private final Player player;
     private Pet.Rarity currentTab = Pet.Rarity.COMMON;
 
-    private static final Map<EntityType, Pet.Rarity> MOB_RARITY = new LinkedHashMap<>();
+    private static final Map<EntityType, Pet.Rarity> MOB_RARITY =
+        new LinkedHashMap<>();
 
     static {
-        // Comunes
+        // ✅ COMUNES
         for (EntityType t : new EntityType[]{
             EntityType.WOLF, EntityType.CAT, EntityType.HORSE,
             EntityType.COW, EntityType.PIG, EntityType.SHEEP,
@@ -28,29 +29,52 @@ public class ShopGUI implements Listener {
             EntityType.FOX, EntityType.TURTLE, EntityType.BEE,
             EntityType.PANDA, EntityType.PARROT, EntityType.COD,
             EntityType.SQUID, EntityType.DOLPHIN, EntityType.FROG,
-            EntityType.CAMEL, EntityType.ARMADILLO})
+            EntityType.CAMEL, EntityType.ARMADILLO,
+            EntityType.VILLAGER})
             MOB_RARITY.put(t, Pet.Rarity.COMMON);
-        // Raras
+
+        // ✅ RARAS
         for (EntityType t : new EntityType[]{
-            EntityType.IRON_GOLEM, EntityType.POLAR_BEAR,
-            EntityType.ZOMBIE_VILLAGER, EntityType.SPIDER,
-            EntityType.CAVE_SPIDER, EntityType.PHANTOM,
-            EntityType.PIGLIN, EntityType.SNOW_GOLEM})
+            EntityType.IRON_GOLEM,
+            EntityType.POLAR_BEAR,
+            EntityType.ZOMBIE_VILLAGER,
+            EntityType.SPIDER,
+            EntityType.CAVE_SPIDER,
+            EntityType.PHANTOM,
+            EntityType.PIGLIN,
+            EntityType.SNOW_GOLEM,
+            EntityType.PILLAGER,
+            EntityType.WANDERING_TRADER})
             MOB_RARITY.put(t, Pet.Rarity.RARE);
-        // Épicas
+
+        // ✅ ÉPICAS
         for (EntityType t : new EntityType[]{
-            EntityType.SKELETON, EntityType.ZOMBIE,
-            EntityType.CREEPER, EntityType.BLAZE,
-            EntityType.ENDERMAN, EntityType.WITCH,
-            EntityType.GUARDIAN, EntityType.PIGLIN_BRUTE,
-            EntityType.HOGLIN, EntityType.RAVAGER,
-            EntityType.VEX, EntityType.VINDICATOR,
-            EntityType.SHULKER, EntityType.MAGMA_CUBE,
-            EntityType.SLIME, EntityType.ELDER_GUARDIAN})
+            EntityType.SKELETON,
+            EntityType.ZOMBIE,
+            EntityType.CREEPER,
+            EntityType.BLAZE,
+            EntityType.ENDERMAN,
+            EntityType.WITCH,
+            EntityType.GUARDIAN,
+            EntityType.PIGLIN_BRUTE,
+            EntityType.HOGLIN,
+            EntityType.RAVAGER,
+            EntityType.VEX,
+            EntityType.VINDICATOR,
+            EntityType.SHULKER,
+            EntityType.MAGMA_CUBE,
+            EntityType.SLIME,
+            EntityType.ELDER_GUARDIAN,
+            EntityType.DROWNED,
+            EntityType.HUSK,
+            EntityType.STRAY,
+            EntityType.BOGGED})
             MOB_RARITY.put(t, Pet.Rarity.EPIC);
-        // Legendarias
+
+        // ✅ LEGENDARIAS
         for (EntityType t : new EntityType[]{
-            EntityType.ENDER_DRAGON, EntityType.WITHER,
+            EntityType.ENDER_DRAGON,
+            EntityType.WITHER,
             EntityType.WARDEN})
             MOB_RARITY.put(t, Pet.Rarity.LEGENDARY);
     }
@@ -106,7 +130,8 @@ public class ShopGUI implements Listener {
         ItemMeta bm = balance.getItemMeta();
         bm.setDisplayName(color("§6§l💰 TU SALDO"));
         bm.setLore(Arrays.asList(
-            color("§f$" + (int) plugin.getEconomyManager().getBalance(player)),
+            color("§f$" + (int) plugin.getEconomyManager()
+                .getBalance(player)),
             color(""),
             color("§7Gana dinero jugando!")
         ));
@@ -127,22 +152,19 @@ public class ShopGUI implements Listener {
             color("§6§l✦ §e§lTienda de Mascotas §6§l✦"))) return;
         event.setCancelled(true);
 
-        // Pestañas
-        if (event.getSlot() == 0) { currentTab = Pet.Rarity.COMMON; open(); return; }
-        if (event.getSlot() == 1) { currentTab = Pet.Rarity.RARE; open(); return; }
-        if (event.getSlot() == 2) { currentTab = Pet.Rarity.EPIC; open(); return; }
-        if (event.getSlot() == 3) { currentTab = Pet.Rarity.LEGENDARY; open(); return; }
-
-        // Ultra premium
+        if (event.getSlot() == 0) {
+            currentTab = Pet.Rarity.COMMON; open(); return; }
+        if (event.getSlot() == 1) {
+            currentTab = Pet.Rarity.RARE; open(); return; }
+        if (event.getSlot() == 2) {
+            currentTab = Pet.Rarity.EPIC; open(); return; }
+        if (event.getSlot() == 3) {
+            currentTab = Pet.Rarity.LEGENDARY; open(); return; }
         if (event.getSlot() == 4) {
             clicker.closeInventory();
             new UltraShopGUI(plugin, clicker).open();
             return;
         }
-
-        ItemStack clicked = event.getCurrentItem();
-        if (clicked == null || clicked.getType() == Material.AIR) return;
-        if (clicked.getItemMeta() == null) return;
 
         List<EntityType> mobs = getMobsByRarity(currentTab);
         int[] slots = {10,11,12,13,14,15,16,
@@ -154,7 +176,8 @@ public class ShopGUI implements Listener {
                 double price = plugin.getEconomyManager()
                     .getPetPrice(type, currentTab);
                 clicker.closeInventory();
-                new BuyConfirmGUI(plugin, clicker, type, currentTab, price).open();
+                new BuyConfirmGUI(plugin, clicker, type,
+                    currentTab, price).open();
                 return;
             }
         }
@@ -178,14 +201,16 @@ public class ShopGUI implements Listener {
         return getMobIcon(type);
     }
 
-    private ItemStack makeMobItem(EntityType type, Pet.Rarity rarity, double price) {
+    private ItemStack makeMobItem(EntityType type,
+        Pet.Rarity rarity, double price) {
         Material icon = getMobIcon(type);
         ItemStack item = new ItemStack(icon);
         ItemMeta meta = item.getItemMeta();
         String rc = rarity == Pet.Rarity.COMMON ? "§f" :
                     rarity == Pet.Rarity.RARE ? "§9" :
                     rarity == Pet.Rarity.EPIC ? "§5" : "§6";
-        meta.setDisplayName(rc + "§l" + type.name().replace("_", " "));
+        meta.setDisplayName(rc + "§l" +
+            type.name().replace("_", " "));
         meta.setLore(Arrays.asList(
             color("§7Rareza: " + rc + rarity.name()),
             color("§7Precio: §6§l$" + (int) price),
@@ -198,6 +223,7 @@ public class ShopGUI implements Listener {
 
     private Material getMobIcon(EntityType type) {
         switch (type) {
+            // ✅ COMUNES
             case WOLF: return Material.BONE;
             case CAT: return Material.COD;
             case HORSE: return Material.SADDLE;
@@ -205,19 +231,22 @@ public class ShopGUI implements Listener {
             case PIG: return Material.PORKCHOP;
             case SHEEP: return Material.WHITE_WOOL;
             case CHICKEN: return Material.FEATHER;
-            case LLAMA: return Material.WHITE_CARPET; // ✅ CORREGIDO
+            case LLAMA: return Material.WHITE_CARPET;
             case RABBIT: return Material.RABBIT_FOOT;
             case FOX: return Material.SWEET_BERRIES;
-            case TURTLE: return Material.TURTLE_SCUTE; // ✅ CORREGIDO
+            case TURTLE: return Material.TURTLE_SCUTE;
             case BEE: return Material.HONEYCOMB;
             case PANDA: return Material.BAMBOO;
             case PARROT: return Material.COOKIE;
+            case COD: return Material.COD;
             case SQUID: return Material.INK_SAC;
             case DOLPHIN: return Material.COD;
             case FROG: return Material.SLIME_BALL;
             case CAMEL: return Material.SAND;
             case ARMADILLO: return Material.ARMADILLO_SCUTE;
-            case COD: return Material.COD;
+            case VILLAGER: return Material.EMERALD;
+
+            // ✅ RARAS
             case IRON_GOLEM: return Material.IRON_BLOCK;
             case POLAR_BEAR: return Material.SNOWBALL;
             case ZOMBIE_VILLAGER: return Material.ROTTEN_FLESH;
@@ -226,6 +255,10 @@ public class ShopGUI implements Listener {
             case PHANTOM: return Material.PHANTOM_MEMBRANE;
             case PIGLIN: return Material.GOLD_INGOT;
             case SNOW_GOLEM: return Material.SNOWBALL;
+            case PILLAGER: return Material.CROSSBOW;
+            case WANDERING_TRADER: return Material.BLUE_DYE;
+
+            // ✅ ÉPICAS
             case SKELETON: return Material.BONE;
             case ZOMBIE: return Material.ROTTEN_FLESH;
             case CREEPER: return Material.GUNPOWDER;
@@ -242,17 +275,26 @@ public class ShopGUI implements Listener {
             case MAGMA_CUBE: return Material.MAGMA_CREAM;
             case SLIME: return Material.SLIME_BALL;
             case ELDER_GUARDIAN: return Material.SPONGE;
+            case DROWNED: return Material.PRISMARINE_SHARD;
+            case HUSK: return Material.SAND;
+            case STRAY: return Material.ARROW;
+            case BOGGED: return Material.MUSHROOM_STEW;
+
+            // ✅ LEGENDARIAS
             case ENDER_DRAGON: return Material.DRAGON_EGG;
             case WITHER: return Material.NETHER_STAR;
             case WARDEN: return Material.SCULK;
+
             default: return Material.SPAWNER;
         }
     }
 
-    private ItemStack makeTab(Material mat, String name, boolean active) {
+    private ItemStack makeTab(Material mat, String name,
+        boolean active) {
         ItemStack item = new ItemStack(mat);
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(color(name + (active ? " §7[ACTIVO]" : "")));
+        meta.setDisplayName(color(name +
+            (active ? " §7[ACTIVO]" : "")));
         item.setItemMeta(meta);
         return item;
     }
@@ -261,7 +303,8 @@ public class ShopGUI implements Listener {
         Material[] mats = {
             Material.YELLOW_STAINED_GLASS_PANE,
             Material.ORANGE_STAINED_GLASS_PANE};
-        int[] border = {8,9,17,18,26,27,35,36,44,45,46,47,48,49,50,51,52,53};
+        int[] border = {8,9,17,18,26,27,35,36,
+                        44,45,46,47,48,49,50,51,52,53};
         int i = 0;
         for (int slot : border) {
             ItemStack glass = new ItemStack(mats[i % mats.length]);

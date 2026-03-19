@@ -1,0 +1,110 @@
+# AdvancedPets Premium - Config.yml
+# Creado por soyadrianyt001
+
+prefix: "&6&l[&e&lAdvancedPets&6&l] &r"
+
+database:
+  type: YML # YML o MYSQL
+  mysql:
+    host: localhost
+    port: 3306
+    database: advancedpets
+    username: root
+    password: password
+
+economy:
+  enabled: true
+
+particles:
+  enabled: true
+  global: true
+
+sounds:
+  enabled: true
+
+holograms:
+  enabled: true
+  show-health: true
+  show-level: true
+  show-work: true
+  show-mood: true
+  show-particles: true
+  show-kills: true
+  show-xp: true
+
+pets:
+  max-per-player: 1
+  follow-distance: 3
+  teleport-distance: 20
+  base-health: 20.0
+  immortal-default: true
+  hunger:
+    enabled: true
+    interval-minutes: 10
+    refuse-work-when-hungry: true
+  sleep:
+    enabled: true
+    hour: 21
+
+prices:
+  common: 500
+  rare: 3000
+  epic: 9500
+  legendary: 25000
+  specific:
+    WOLF: 500
+    CAT: 500
+    HORSE: 500
+    COW: 500
+    PIG: 500
+    SHEEP: 500
+    CHICKEN: 500
+    LLAMA: 500
+    RABBIT: 500
+    FOX: 500
+    TURTLE: 500
+    BEE: 500
+    PANDA: 500
+    PARROT: 500
+    COD: 500
+    SQUID: 500
+    DOLPHIN: 500
+    FROG: 500
+    CAMEL: 500
+    ARMADILLO: 500
+    IRON_GOLEM: 3000
+    POLAR_BEAR: 2500
+    ZOMBIE_VILLAGER: 2500
+    SPIDER: 2500
+    CAVE_SPIDER: 2800
+    PHANTOM: 3000
+    PIGLIN: 3000
+    SNOW_GOLEM: 2000
+    SKELETON: 7500
+    ZOMBIE: 7500
+    CREEPER: 8000
+    BLAZE: 9000
+    ENDERMAN: 8500
+    WITCH: 7500
+    GUARDIAN: 8000
+    PIGLIN_BRUTE: 9500
+    HOGLIN: 8000
+    RAVAGER: 10000
+    VEX: 9000
+    VINDICATOR: 9000
+    SHULKER: 9500
+    MAGMA_CUBE: 8500
+    SLIME: 7500
+    ELDER_GUARDIAN: 10000
+    ENDER_DRAGON: 25000
+    WITHER: 20000
+    PHOENIX: 15000
+    WARDEN: 22000
+
+damage:
+  default: 10
+  min: 1
+  max: 30
+
+xp:
+  per-kill​​​​​​​​​​​​​​​​

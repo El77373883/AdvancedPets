@@ -35,6 +35,8 @@ public class CombatListener implements Listener {
                     pet.getName() +
                     " §fdice: §c¡NADIE toca a mi amo! ⚔ ¡A PELEAR!");
                 playAttackSound(pet, victim.getLocation());
+                // ✅ Invocar clones al contraatacar
+                plugin.getCloneManager().spawnClones(pet, target, victim);
                 if (target.isDead() || target.getHealth() <= 0) {
                     pet.setKills(pet.getKills() + 1);
                     onPetKill(victim, pet, target);
@@ -61,6 +63,9 @@ public class CombatListener implements Listener {
                             pet.getName() +
                             " §fdice: §6¡Por mi amo daré todo! 💪🔥");
                         playAttackSound(pet, target.getLocation());
+                        // ✅ Invocar clones al ayudar al amo
+                        plugin.getCloneManager().spawnClones(
+                            pet, target, attacker);
                         if (target.isDead() || target.getHealth() <= 0) {
                             pet.setKills(pet.getKills() + 1);
                             onPetKill(attacker, pet, target);
@@ -71,108 +76,65 @@ public class CombatListener implements Listener {
         }
     }
 
-    // ✅ Sonido único por mob — sin duplicados ni errores
     private void playAttackSound(Pet pet, Location loc) {
         World world = loc.getWorld();
         if (world == null) return;
         Sound sound;
-
         switch (pet.getEntityType()) {
-            case WOLF:
-                sound = Sound.ENTITY_WOLF_GROWL; break;
-            case CAT:
-                sound = Sound.ENTITY_CAT_HISS; break;
-            case HORSE:
-                sound = Sound.ENTITY_HORSE_ANGRY; break;
-            case COW:
-                sound = Sound.ENTITY_COW_HURT; break;
-            case PIG:
-                sound = Sound.ENTITY_PIG_HURT; break;
-            case SHEEP:
-                sound = Sound.ENTITY_SHEEP_HURT; break;
-            case CHICKEN:
-                sound = Sound.ENTITY_CHICKEN_HURT; break;
-            case LLAMA:
-                sound = Sound.ENTITY_LLAMA_SPIT; break;
-            case RABBIT:
-                sound = Sound.ENTITY_RABBIT_HURT; break;
-            case FOX:
-                sound = Sound.ENTITY_FOX_AGGRO; break;
-            case TURTLE:
-                sound = Sound.ENTITY_TURTLE_AMBIENT_LAND; break;
-            case BEE:
-                sound = Sound.ENTITY_BEE_STING; break;
-            case PANDA:
-                sound = Sound.ENTITY_PANDA_BITE; break;
-            case DOLPHIN:
-                sound = Sound.ENTITY_DOLPHIN_HURT; break;
-            case FROG:
-                sound = Sound.ENTITY_FROG_HURT; break;
-            case CAMEL:
-                sound = Sound.ENTITY_CAMEL_HURT; break;
-            case IRON_GOLEM:
-                sound = Sound.ENTITY_IRON_GOLEM_ATTACK; break;
-            case POLAR_BEAR:
-                sound = Sound.ENTITY_POLAR_BEAR_WARNING; break;
+            case WOLF: sound = Sound.ENTITY_WOLF_GROWL; break;
+            case CAT: sound = Sound.ENTITY_CAT_HISS; break;
+            case HORSE: sound = Sound.ENTITY_HORSE_ANGRY; break;
+            case COW: sound = Sound.ENTITY_COW_HURT; break;
+            case PIG: sound = Sound.ENTITY_PIG_HURT; break;
+            case SHEEP: sound = Sound.ENTITY_SHEEP_HURT; break;
+            case CHICKEN: sound = Sound.ENTITY_CHICKEN_HURT; break;
+            case LLAMA: sound = Sound.ENTITY_LLAMA_SPIT; break;
+            case RABBIT: sound = Sound.ENTITY_RABBIT_HURT; break;
+            case FOX: sound = Sound.ENTITY_FOX_AGGRO; break;
+            case TURTLE: sound = Sound.ENTITY_TURTLE_AMBIENT_LAND; break;
+            case BEE: sound = Sound.ENTITY_BEE_STING; break;
+            case PANDA: sound = Sound.ENTITY_PANDA_BITE; break;
+            case DOLPHIN: sound = Sound.ENTITY_DOLPHIN_HURT; break;
+            case FROG: sound = Sound.ENTITY_FROG_HURT; break;
+            case CAMEL: sound = Sound.ENTITY_CAMEL_HURT; break;
+            case IRON_GOLEM: sound = Sound.ENTITY_IRON_GOLEM_ATTACK; break;
+            case POLAR_BEAR: sound = Sound.ENTITY_POLAR_BEAR_WARNING; break;
             case SPIDER:
-            case CAVE_SPIDER:
-                sound = Sound.ENTITY_SPIDER_STEP; break;
-            case PHANTOM:
-                sound = Sound.ENTITY_PHANTOM_BITE; break;
+            case CAVE_SPIDER: sound = Sound.ENTITY_SPIDER_STEP; break;
+            case PHANTOM: sound = Sound.ENTITY_PHANTOM_BITE; break;
             case PIGLIN:
-            case PIGLIN_BRUTE:
-                sound = Sound.ENTITY_PIGLIN_ANGRY; break;
-            case PILLAGER:
-                sound = Sound.ENTITY_PILLAGER_CELEBRATE; break;
+            case PIGLIN_BRUTE: sound = Sound.ENTITY_PIGLIN_ANGRY; break;
+            case PILLAGER: sound = Sound.ENTITY_PILLAGER_CELEBRATE; break;
             case WANDERING_TRADER:
                 sound = Sound.ENTITY_WANDERING_TRADER_HURT; break;
-            case SNOW_GOLEM:
-                sound = Sound.ENTITY_SNOW_GOLEM_HURT; break;
+            case SNOW_GOLEM: sound = Sound.ENTITY_SNOW_GOLEM_HURT; break;
             case SKELETON:
             case STRAY:
-            case BOGGED:
-                sound = Sound.ENTITY_SKELETON_SHOOT; break;
+            case BOGGED: sound = Sound.ENTITY_SKELETON_SHOOT; break;
             case ZOMBIE:
             case HUSK:
             case DROWNED:
                 sound = Sound.ENTITY_ZOMBIE_ATTACK_IRON_DOOR; break;
             case ZOMBIE_VILLAGER:
                 sound = Sound.ENTITY_ZOMBIE_VILLAGER_HURT; break;
-            case VILLAGER:
-                sound = Sound.ENTITY_VILLAGER_HURT; break;
-            case CREEPER:
-                sound = Sound.ENTITY_CREEPER_PRIMED; break;
-            case BLAZE:
-                sound = Sound.ENTITY_BLAZE_SHOOT; break;
-            case ENDERMAN:
-                sound = Sound.ENTITY_ENDERMAN_SCREAM; break;
-            case WITCH:
-                sound = Sound.ENTITY_WITCH_THROW; break;
+            case VILLAGER: sound = Sound.ENTITY_VILLAGER_HURT; break;
+            case CREEPER: sound = Sound.ENTITY_CREEPER_PRIMED; break;
+            case BLAZE: sound = Sound.ENTITY_BLAZE_SHOOT; break;
+            case ENDERMAN: sound = Sound.ENTITY_ENDERMAN_SCREAM; break;
+            case WITCH: sound = Sound.ENTITY_WITCH_THROW; break;
             case GUARDIAN:
-            case ELDER_GUARDIAN:
-                sound = Sound.ENTITY_GUARDIAN_ATTACK; break;
-            case HOGLIN:
-                sound = Sound.ENTITY_HOGLIN_ANGRY; break;
-            case RAVAGER:
-                sound = Sound.ENTITY_RAVAGER_ATTACK; break;
-            case VEX:
-                sound = Sound.ENTITY_VEX_CHARGE; break;
-            case VINDICATOR:
-                sound = Sound.ENTITY_VINDICATOR_CELEBRATE; break;
-            case SHULKER:
-                sound = Sound.ENTITY_SHULKER_SHOOT; break;
-            case SLIME:
-                sound = Sound.ENTITY_SLIME_ATTACK; break;
-            case MAGMA_CUBE:
-                sound = Sound.ENTITY_MAGMA_CUBE_HURT; break;
-            case WARDEN:
-                sound = Sound.ENTITY_WARDEN_ATTACK_IMPACT; break;
-            case WITHER:
-                sound = Sound.ENTITY_WITHER_SHOOT; break;
-            case ENDER_DRAGON:
-                sound = Sound.ENTITY_ENDER_DRAGON_GROWL; break;
-            default:
-                sound = Sound.ENTITY_PLAYER_ATTACK_SWEEP; break;
+            case ELDER_GUARDIAN: sound = Sound.ENTITY_GUARDIAN_ATTACK; break;
+            case HOGLIN: sound = Sound.ENTITY_HOGLIN_ANGRY; break;
+            case RAVAGER: sound = Sound.ENTITY_RAVAGER_ATTACK; break;
+            case VEX: sound = Sound.ENTITY_VEX_CHARGE; break;
+            case VINDICATOR: sound = Sound.ENTITY_VINDICATOR_CELEBRATE; break;
+            case SHULKER: sound = Sound.ENTITY_SHULKER_SHOOT; break;
+            case SLIME: sound = Sound.ENTITY_SLIME_ATTACK; break;
+            case MAGMA_CUBE: sound = Sound.ENTITY_MAGMA_CUBE_HURT; break;
+            case WARDEN: sound = Sound.ENTITY_WARDEN_ATTACK_IMPACT; break;
+            case WITHER: sound = Sound.ENTITY_WITHER_SHOOT; break;
+            case ENDER_DRAGON: sound = Sound.ENTITY_ENDER_DRAGON_GROWL; break;
+            default: sound = Sound.ENTITY_PLAYER_ATTACK_SWEEP; break;
         }
         world.playSound(loc, sound, 1f, 1f);
         world.spawnParticle(Particle.SWEEP_ATTACK,
@@ -182,6 +144,17 @@ public class CombatListener implements Listener {
     private void onPetKill(Player owner, Pet pet, LivingEntity killed) {
         plugin.getAchievementManager().checkAchievements(owner, pet);
         plugin.getMissionManager().addProgress(owner.getUniqueId(), 1);
+
+        // ✅ XP al matar — verificar si sube de nivel
+        int levelBefore = pet.getLevel();
+        pet.addXP(plugin.getConfig().getDouble("xp.per-kill", 10));
+        int levelAfter = pet.getLevel();
+
+        // ✅ Título en pantalla al subir de nivel
+        if (levelAfter > levelBefore) {
+            showLevelUpTitle(owner, pet);
+        }
+
         String[] insults = {
             "§c¡Eso es todo lo que tienes?! 😤",
             "§c¡Jajaja! ¡Vuelve cuando seas más fuerte! 💀",
@@ -197,6 +170,62 @@ public class CombatListener implements Listener {
         plugin.getPetManager().savePet(pet);
     }
 
+    // ✅ Título épico en pantalla al subir de nivel
+    private void showLevelUpTitle(Player owner, Pet pet) {
+        String rc = pet.getRarityColor();
+
+        // Título principal
+        String title = rc + "§l⭐ LEVEL UP ⭐";
+
+        // Subtítulo con nombre y nivel
+        String subtitle = "§f" + pet.getName() +
+            " §7llegó al §e§lNivel " + pet.getLevel() + "§7!";
+
+        // ✅ Mostrar título en pantalla
+        owner.sendTitle(title, subtitle, 10, 60, 20);
+
+        // ✅ Mensaje en chat también
+        owner.sendMessage("§r");
+        owner.sendMessage(
+            "§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
+        owner.sendMessage(rc + "§l   ⭐ ¡NIVEL UP! ⭐");
+        owner.sendMessage("§f  " + pet.getName() +
+            " §fllegó al §e§lNivel " + pet.getLevel() + "§f!");
+        owner.sendMessage("§f  Vida máx: §a+" +
+            (int) pet.getMaxHealth());
+        owner.sendMessage(
+            "§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
+        owner.sendMessage("§r");
+
+        // ✅ Sonido épico de level up
+        owner.playSound(owner.getLocation(),
+            Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1.2f);
+        owner.playSound(owner.getLocation(),
+            Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
+
+        // ✅ Partículas épicas alrededor del jugador
+        Location loc = owner.getLocation();
+        World world = loc.getWorld();
+        if (world != null) {
+            world.spawnParticle(Particle.TOTEM_OF_UNDYING,
+                loc.add(0, 1, 0), 100, 1, 1, 1, 0.3);
+            // Partícula de color según rareza
+            Color rarityColor =
+                pet.getRarity() == Pet.Rarity.LEGENDARY ?
+                    Color.YELLOW :
+                pet.getRarity() == Pet.Rarity.EPIC ?
+                    Color.PURPLE :
+                pet.getRarity() == Pet.Rarity.RARE ?
+                    Color.BLUE : Color.WHITE;
+            world.spawnParticle(Particle.DUST,
+                owner.getLocation(), 50, 1, 1, 1,
+                new Particle.DustOptions(rarityColor, 3f));
+        }
+
+        // ✅ Actualizar holograma con nuevo nivel
+        plugin.getHologramManager().updateHologram(pet);
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onEntityDamage(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof LivingEntity)) return;
@@ -209,8 +238,7 @@ public class CombatListener implements Listener {
                 Location loc = pet.getEntity().getLocation();
                 loc.getWorld().spawnParticle(
                     Particle.BLOCK,
-                    loc.add(0, 1, 0), 10,
-                    0.3, 0.3, 0.3,
+                    loc.add(0, 1, 0), 10, 0.3, 0.3, 0.3,
                     Material.IRON_BLOCK.createBlockData());
                 return;
             }

@@ -28,6 +28,7 @@ public class PetManager {
         startParticleTimer();
         startFollowTimer();
         startSleepTimer();
+        startPersistenceTimer();
     }
 
     public Pet getPet(UUID ownerUUID) {
@@ -55,23 +56,41 @@ public class PetManager {
 
     public void spawnPet(Pet pet, Location location) {
         if (pet.isSummoned()) return;
-        Entity entity = location.getWorld().spawnEntity(location, pet.getEntityType());
+
+        // ✅ Spawn a 5 bloques de distancia del jugador
+        // para que no esté molestamente pegado
+        Location spawnLoc = location.clone().add(5, 0, 0);
+
+        Entity entity = spawnLoc.getWorld().spawnEntity(
+            spawnLoc, pet.getEntityType());
         entity.setCustomName(formatPetName(pet));
         entity.setCustomNameVisible(false);
+
         if (entity instanceof LivingEntity) {
             LivingEntity living = (LivingEntity) entity;
             living.setMaxHealth(pet.getMaxHealth());
             living.setHealth(pet.getHealth());
+            // ✅ setAware false para que no ataque por su cuenta
+            // pero SÍ se mueve cuando lo teleportamos
             if (entity instanceof Mob) {
                 Mob mob = (Mob) entity;
                 mob.setAware(false);
             }
         }
+
+        // ✅ Persistente — no desaparece al salir
+        entity.setPersistent(true);
+        // ✅ No se elimina por lejanía
+        if (entity instanceof LivingEntity) {
+            ((LivingEntity) entity).setRemoveWhenFarAway(false);
+        }
+
         pet.setEntity(entity);
-        pet.setLocation(location);
+        pet.setLocation(spawnLoc);
         pet.setSummoned(true);
+
         plugin.getHologramManager().createHologram(pet);
-        playSpawnEffects(pet, location);
+        playSpawnEffects(pet, spawnLoc);
     }
 
     public void despawnPet(Pet pet) {
@@ -84,24 +103,119 @@ public class PetManager {
         pet.setSummoned(false);
     }
 
+    // ✅ Timer para que la mascota persista y siga al jugador
+    // con distancia correcta (6 bloques mínimo, 15 máximo)
+    private void startFollowTimer() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Pet pet : activePets.values()) {
+                    if (!pet.isSummoned() || pet.getEntity() == null
+                        || pet.isSleeping()) continue;
+
+                    Player owner = Bukkit.getPlayer(pet.getOwnerUUID());
+                    if (owner == null || !owner.isOnline()) continue;
+
+                    // Verificar que la entidad sigue viva
+                    if (pet.getEntity().isDead() ||
+                        !pet.getEntity().isValid()) {
+                        // ✅ Re-spawnear si murió o desapareció
+                        pet.setSummoned(false);
+                        pet.setEntity(null);
+                        spawnPet(pet, owner.getLocation());
+                        continue;
+                    }
+
+                    double dist = pet.getEntity().getLocation()
+                        .distance(owner.getLocation());
+
+                    // ✅ Solo teletransportar si está a más de 15 bloques
+                    // Zona ideal: 5-8 bloques de distancia
+                    if (dist > 15) {
+                        // Teletransportar a 6 bloques del jugador
+                        Location target = getOffsetLocation(
+                            owner.getLocation(), 6);
+                        pet.getEntity().teleport(target);
+                    } else if (dist < 4) {
+                        // ✅ Si está muy cerca (menos de 4 bloques)
+                        // alejarlo un poco
+                        Location away = getOffsetLocation(
+                            owner.getLocation(), 6);
+                        pet.getEntity().teleport(away);
+                    }
+                    // Entre 4-15 bloques: no hacer nada, dejar donde está
+
+                    plugin.getHologramManager().updateHologram(pet);
+                }
+            }
+        // ✅ Cada 2 segundos — no tan seguido para no ser molesto
+        }.runTaskTimer(plugin, 20L, 40L);
+    }
+
+    // ✅ Timer de persistencia — re-spawnea mascota si
+    // el jugador la pierde o el servidor se reinicia
+    private void startPersistenceTimer() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Pet pet : activePets.values()) {
+                    Player owner = Bukkit.getPlayer(pet.getOwnerUUID());
+                    if (owner == null || !owner.isOnline()) continue;
+
+                    // Si debería estar invocada pero no está
+                    if (pet.isSummoned() && (pet.getEntity() == null
+                        || pet.getEntity().isDead()
+                        || !pet.getEntity().isValid())) {
+                        pet.setSummoned(false);
+                        pet.setEntity(null);
+                        spawnPet(pet, owner.getLocation());
+                        owner.sendMessage("§6§l[AdvancedPets] §e" +
+                            pet.getName() +
+                            " §fdice: §a¡Aquí estoy amo! 🐾 No me perdí!");
+                    }
+                }
+            }
+        // ✅ Verificar cada 5 segundos
+        }.runTaskTimer(plugin, 100L, 100L);
+    }
+
+    // ✅ Obtener ubicación con offset aleatorio
+    // para que no quede exactamente en el mismo punto
+    private Location getOffsetLocation(Location base, double distance) {
+        Random rand = new Random();
+        double angle = rand.nextDouble() * 2 * Math.PI;
+        double x = Math.cos(angle) * distance;
+        double z = Math.sin(angle) * distance;
+        Location target = base.clone().add(x, 0, z);
+        // Ajustar Y al suelo
+        target.setY(base.getWorld().getHighestBlockYAt(target) + 1);
+        return target;
+    }
+
     private void playSpawnEffects(Pet pet, Location location) {
         World world = location.getWorld();
         if (world == null) return;
         world.playSound(location, Sound.ENTITY_ENDER_DRAGON_GROWL, 1f, 1f);
-        world.spawnParticle(Particle.TOTEM_OF_UNDYING, location, 100, 1, 1, 1, 0.3);
-        world.spawnParticle(Particle.FLAME, location, 50, 0.5, 0.5, 0.5, 0.1);
+        world.spawnParticle(Particle.TOTEM_OF_UNDYING,
+            location, 100, 1, 1, 1, 0.3);
+        world.spawnParticle(Particle.FLAME,
+            location, 50, 0.5, 0.5, 0.5, 0.1);
+
         Player owner = Bukkit.getPlayer(pet.getOwnerUUID());
         if (owner != null) {
             owner.sendMessage("§r");
             owner.sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
             owner.sendMessage("§e§l   ⭐ ¡MASCOTA INVOCADA! ⭐");
             owner.sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
-            owner.sendMessage("§f  Nombre: " + pet.getRarityColor() + "§l" + pet.getName());
+            owner.sendMessage("§f  Nombre: " + pet.getRarityColor() +
+                "§l" + pet.getName());
             owner.sendMessage("§f  Tipo:   §e" + pet.getEntityType().name());
-            owner.sendMessage("§f  Rareza: " + pet.getRarityColor() + "§l" + pet.getRarityName());
+            owner.sendMessage("§f  Rareza: " + pet.getRarityColor() +
+                "§l" + pet.getRarityName());
             owner.sendMessage("§f  Nivel:  §a§l" + pet.getLevel());
             owner.sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
             owner.sendMessage("§r");
+
             if (pet.getRarity() == Pet.Rarity.LEGENDARY) {
                 for (Player p : Bukkit.getOnlinePlayers()) {
                     p.sendMessage("§r");
@@ -115,7 +229,8 @@ public class PetManager {
                     p.playSound(p.getLocation(),
                         Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
                 }
-                world.spawnParticle(Particle.FIREWORK, location, 200, 2, 2, 2, 0.5);
+                world.spawnParticle(Particle.FIREWORK,
+                    location, 200, 2, 2, 2, 0.5);
             }
         }
     }
@@ -123,39 +238,6 @@ public class PetManager {
     private String formatPetName(Pet pet) {
         return pet.getRarityColor() + "§l" + pet.getName() +
             " §7[Nv." + pet.getLevel() + "]";
-    }
-
-    private void startFollowTimer() {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                for (Pet pet : activePets.values()) {
-                    if (!pet.isSummoned() || pet.getEntity() == null
-                        || pet.isSleeping()) continue;
-                    Player owner = Bukkit.getPlayer(pet.getOwnerUUID());
-                    if (owner == null || !owner.isOnline()) continue;
-
-                    double dist = pet.getEntity().getLocation()
-                        .distance(owner.getLocation());
-                    int teleportDist = plugin.getConfig()
-                        .getInt("pets.teleport-distance", 20);
-                    int followDist = plugin.getConfig()
-                        .getInt("pets.follow-distance", 3);
-
-                    if (dist > followDist) {
-                        // ✅ CORREGIDO: teletransportar directamente
-                        // sin usar getPathfinder() que no existe en 1.21.1
-                        Location target = owner.getLocation().clone();
-                        target.add(
-                            (Math.random() - 0.5) * 2,
-                            0,
-                            (Math.random() - 0.5) * 2);
-                        pet.getEntity().teleport(target);
-                    }
-                    plugin.getHologramManager().updateHologram(pet);
-                }
-            }
-        }.runTaskTimer(plugin, 20L, 20L);
     }
 
     private void startHungerTimer() {
@@ -174,13 +256,13 @@ public class PetManager {
                         pet.setMood(Pet.Mood.HUNGRY);
                         owner.sendMessage("§6§l[AdvancedPets] §e" +
                             pet.getName() +
-                            " §fdice: §7¡Amo, tengo hambre! 🍖 Dame algo de comer...");
+                            " §fdice: §7¡Amo, tengo hambre! 🍖");
                         owner.playSound(owner.getLocation(),
                             Sound.ENTITY_WOLF_WHINE, 1f, 1f);
                     } else if (pet.getHunger() <= 20) {
                         owner.sendMessage("§c§l[AdvancedPets] §e" +
                             pet.getName() +
-                            " §fdice: §c¡Me muero de hambre! 😭 ¡Aliméntame ya!");
+                            " §fdice: §c¡Me muero de hambre! 😭");
                         owner.playSound(owner.getLocation(),
                             Sound.ENTITY_WOLF_HURT, 1f, 0.8f);
                     }
@@ -241,8 +323,8 @@ public class PetManager {
                             pet.setSleeping(true);
                             Player owner = Bukkit.getPlayer(pet.getOwnerUUID());
                             if (owner != null) {
-                                owner.sendMessage("§8§l[AdvancedPets] §7" +
-                                    pet.getName() +
+                                owner.sendMessage(
+                                    "§8§l[AdvancedPets] §7" + pet.getName() +
                                     " §fdice: §8¡Estoy cansado amo... 😴 Zzzz...");
                             }
                         }
@@ -341,7 +423,8 @@ public class PetManager {
             loc.getWorld().spawnParticle(Particle.HEART,
                 loc.add(0, 2, 0), 10, 0.5, 0.5, 0.5, 0);
         }
-        owner.playSound(owner.getLocation(), Sound.ENTITY_GENERIC_EAT, 1f, 1f);
+        owner.playSound(owner.getLocation(),
+            Sound.ENTITY_GENERIC_EAT, 1f, 1f);
         Bukkit.getScheduler().runTaskLater(plugin, () ->
             owner.playSound(owner.getLocation(),
                 Sound.ENTITY_CAT_PURR, 1f, 1f), 20L);
@@ -350,8 +433,10 @@ public class PetManager {
     }
 
     public void savePet(Pet pet) {
-        File file = new File(dataFolder, pet.getOwnerUUID().toString() + ".yml");
-        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
+        File file = new File(dataFolder,
+            pet.getOwnerUUID().toString() + ".yml");
+        FileConfiguration config =
+            YamlConfiguration.loadConfiguration(file);
         config.set("petUUID", pet.getPetUUID().toString());
         config.set("ownerName", pet.getOwnerName());
         config.set("name", pet.getName());
@@ -371,7 +456,12 @@ public class PetManager {
         config.set("particleType", pet.getParticleType().name());
         config.set("birthdayDate", pet.getBirthdayDate());
         config.set("clanName", pet.getClanName());
-        try { config.save(file); } catch (IOException e) { e.printStackTrace(); }
+        config.set("summoned", pet.isSummoned());
+        try {
+            config.save(file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void saveAllPets() {
@@ -384,17 +474,20 @@ public class PetManager {
         if (files == null) return;
         for (File file : files) {
             if (!file.getName().endsWith(".yml")) continue;
-            FileConfiguration config = YamlConfiguration.loadConfiguration(file);
+            FileConfiguration config =
+                YamlConfiguration.loadConfiguration(file);
             try {
                 UUID ownerUUID = UUID.fromString(
                     file.getName().replace(".yml", ""));
-                String ownerName = config.getString("ownerName", "Unknown");
+                String ownerName =
+                    config.getString("ownerName", "Unknown");
                 String name = config.getString("name", "Pet");
                 EntityType entityType = EntityType.valueOf(
                     config.getString("entityType", "WOLF"));
                 Pet.Rarity rarity = Pet.Rarity.valueOf(
                     config.getString("rarity", "COMMON"));
-                Pet pet = new Pet(ownerUUID, ownerName, name, entityType, rarity);
+                Pet pet = new Pet(ownerUUID, ownerName,
+                    name, entityType, rarity);
                 pet.setLevel(config.getInt("level", 1));
                 pet.setXp(config.getDouble("xp", 0));
                 pet.setXpNeeded(config.getDouble("xpNeeded", 100));
@@ -408,12 +501,29 @@ public class PetManager {
                 pet.setWorkMode(config.getBoolean("workMode", true));
                 pet.setParticleType(Pet.ParticleType.valueOf(
                     config.getString("particleType", "NONE")));
-                pet.setBirthdayDate(config.getString("birthdayDate", null));
-                pet.setClanName(config.getString("clanName", null));
+                pet.setBirthdayDate(
+                    config.getString("birthdayDate", null));
+                pet.setClanName(
+                    config.getString("clanName", null));
+                // ✅ Guardar estado summoned para re-spawnear al reconectar
+                pet.setSummoned(config.getBoolean("summoned", false));
                 activePets.put(ownerUUID, pet);
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    // ✅ Re-spawnear mascotas cuando el jugador se conecta
+    public void respawnPetOnJoin(Player player) {
+        Pet pet = activePets.get(player.getUniqueId());
+        if (pet == null) return;
+        if (pet.isSummoned()) {
+            // Resetear estado y re-spawnear
+            pet.setSummoned(false);
+            pet.setEntity(null);
+            Bukkit.getScheduler().runTaskLater(plugin, () ->
+                spawnPet(pet, player.getLocation()), 40L);
         }
     }
 

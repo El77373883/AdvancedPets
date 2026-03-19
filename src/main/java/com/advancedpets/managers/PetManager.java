@@ -27,8 +27,8 @@ public class PetManager {
         startMoodTimer();
         startParticleTimer();
         startFollowTimer();
-        startSleepTimer();
         startPersistenceTimer();
+        // ✅ ELIMINADO startSleepTimer() — mascota ya no duerme
     }
 
     public Pet getPet(UUID ownerUUID) {
@@ -49,18 +49,15 @@ public class PetManager {
         if (pet != null) {
             despawnPet(pet);
             activePets.remove(ownerUUID);
-            File petFile = new File(dataFolder, ownerUUID.toString() + ".yml");
+            File petFile = new File(dataFolder,
+                ownerUUID.toString() + ".yml");
             if (petFile.exists()) petFile.delete();
         }
     }
 
     public void spawnPet(Pet pet, Location location) {
         if (pet.isSummoned()) return;
-
-        // ✅ Spawn a 5 bloques de distancia del jugador
-        // para que no esté molestamente pegado
         Location spawnLoc = location.clone().add(5, 0, 0);
-
         Entity entity = spawnLoc.getWorld().spawnEntity(
             spawnLoc, pet.getEntityType());
         entity.setCustomName(formatPetName(pet));
@@ -70,25 +67,21 @@ public class PetManager {
             LivingEntity living = (LivingEntity) entity;
             living.setMaxHealth(pet.getMaxHealth());
             living.setHealth(pet.getHealth());
-            // ✅ setAware false para que no ataque por su cuenta
-            // pero SÍ se mueve cuando lo teleportamos
             if (entity instanceof Mob) {
                 Mob mob = (Mob) entity;
-                mob.setAware(false);
+                // ✅ setAware TRUE para que se mueva
+                mob.setAware(true);
             }
         }
-
-        // ✅ Persistente — no desaparece al salir
         entity.setPersistent(true);
-        // ✅ No se elimina por lejanía
         if (entity instanceof LivingEntity) {
             ((LivingEntity) entity).setRemoveWhenFarAway(false);
         }
-
         pet.setEntity(entity);
         pet.setLocation(spawnLoc);
         pet.setSummoned(true);
-
+        // ✅ Mascota NUNCA duerme
+        pet.setSleeping(false);
         plugin.getHologramManager().createHologram(pet);
         playSpawnEffects(pet, spawnLoc);
     }
@@ -103,23 +96,21 @@ public class PetManager {
         pet.setSummoned(false);
     }
 
-    // ✅ Timer para que la mascota persista y siga al jugador
-    // con distancia correcta (6 bloques mínimo, 15 máximo)
     private void startFollowTimer() {
         new BukkitRunnable() {
             @Override
             public void run() {
                 for (Pet pet : activePets.values()) {
-                    if (!pet.isSummoned() || pet.getEntity() == null
-                        || pet.isSleeping()) continue;
+                    if (!pet.isSummoned() || pet.getEntity() == null) continue;
+
+                    // ✅ ELIMINADO chequeo de sleeping
+                    // mascota siempre se mueve
 
                     Player owner = Bukkit.getPlayer(pet.getOwnerUUID());
                     if (owner == null || !owner.isOnline()) continue;
 
-                    // Verificar que la entidad sigue viva
                     if (pet.getEntity().isDead() ||
                         !pet.getEntity().isValid()) {
-                        // ✅ Re-spawnear si murió o desapareció
                         pet.setSummoned(false);
                         pet.setEntity(null);
                         spawnPet(pet, owner.getLocation());
@@ -129,31 +120,29 @@ public class PetManager {
                     double dist = pet.getEntity().getLocation()
                         .distance(owner.getLocation());
 
-                    // ✅ Solo teletransportar si está a más de 15 bloques
-                    // Zona ideal: 5-8 bloques de distancia
                     if (dist > 15) {
-                        // Teletransportar a 6 bloques del jugador
+                        // Teletransportar a 6 bloques
                         Location target = getOffsetLocation(
                             owner.getLocation(), 6);
                         pet.getEntity().teleport(target);
                     } else if (dist < 4) {
-                        // ✅ Si está muy cerca (menos de 4 bloques)
-                        // alejarlo un poco
+                        // Alejar si está muy cerca
                         Location away = getOffsetLocation(
                             owner.getLocation(), 6);
                         pet.getEntity().teleport(away);
                     }
-                    // Entre 4-15 bloques: no hacer nada, dejar donde está
-
+                    // ✅ Hacer que el mob mire y siga al dueño
+                    if (pet.getEntity() instanceof Mob) {
+                        Mob mob = (Mob) pet.getEntity();
+                        // ✅ Activar awareness para que se mueva
+                        mob.setAware(true);
+                    }
                     plugin.getHologramManager().updateHologram(pet);
                 }
             }
-        // ✅ Cada 2 segundos — no tan seguido para no ser molesto
         }.runTaskTimer(plugin, 20L, 40L);
     }
 
-    // ✅ Timer de persistencia — re-spawnea mascota si
-    // el jugador la pierde o el servidor se reinicia
     private void startPersistenceTimer() {
         new BukkitRunnable() {
             @Override
@@ -161,8 +150,6 @@ public class PetManager {
                 for (Pet pet : activePets.values()) {
                     Player owner = Bukkit.getPlayer(pet.getOwnerUUID());
                     if (owner == null || !owner.isOnline()) continue;
-
-                    // Si debería estar invocada pero no está
                     if (pet.isSummoned() && (pet.getEntity() == null
                         || pet.getEntity().isDead()
                         || !pet.getEntity().isValid())) {
@@ -171,23 +158,21 @@ public class PetManager {
                         spawnPet(pet, owner.getLocation());
                         owner.sendMessage("§6§l[AdvancedPets] §e" +
                             pet.getName() +
-                            " §fdice: §a¡Aquí estoy amo! 🐾 No me perdí!");
+                            " §fdice: §a¡Aquí estoy amo! 🐾");
                     }
+                    // ✅ Asegurarse que NUNCA esté durmiendo
+                    pet.setSleeping(false);
                 }
             }
-        // ✅ Verificar cada 5 segundos
         }.runTaskTimer(plugin, 100L, 100L);
     }
 
-    // ✅ Obtener ubicación con offset aleatorio
-    // para que no quede exactamente en el mismo punto
     private Location getOffsetLocation(Location base, double distance) {
         Random rand = new Random();
         double angle = rand.nextDouble() * 2 * Math.PI;
         double x = Math.cos(angle) * distance;
         double z = Math.sin(angle) * distance;
         Location target = base.clone().add(x, 0, z);
-        // Ajustar Y al suelo
         target.setY(base.getWorld().getHighestBlockYAt(target) + 1);
         return target;
     }
@@ -200,31 +185,36 @@ public class PetManager {
             location, 100, 1, 1, 1, 0.3);
         world.spawnParticle(Particle.FLAME,
             location, 50, 0.5, 0.5, 0.5, 0.1);
-
         Player owner = Bukkit.getPlayer(pet.getOwnerUUID());
         if (owner != null) {
             owner.sendMessage("§r");
-            owner.sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
+            owner.sendMessage(
+                "§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
             owner.sendMessage("§e§l   ⭐ ¡MASCOTA INVOCADA! ⭐");
-            owner.sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
-            owner.sendMessage("§f  Nombre: " + pet.getRarityColor() +
-                "§l" + pet.getName());
-            owner.sendMessage("§f  Tipo:   §e" + pet.getEntityType().name());
-            owner.sendMessage("§f  Rareza: " + pet.getRarityColor() +
-                "§l" + pet.getRarityName());
+            owner.sendMessage(
+                "§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
+            owner.sendMessage("§f  Nombre: " +
+                pet.getRarityColor() + "§l" + pet.getName());
+            owner.sendMessage("§f  Tipo:   §e" +
+                pet.getEntityType().name());
+            owner.sendMessage("§f  Rareza: " +
+                pet.getRarityColor() + "§l" + pet.getRarityName());
             owner.sendMessage("§f  Nivel:  §a§l" + pet.getLevel());
-            owner.sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
+            owner.sendMessage(
+                "§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
             owner.sendMessage("§r");
-
             if (pet.getRarity() == Pet.Rarity.LEGENDARY) {
                 for (Player p : Bukkit.getOnlinePlayers()) {
                     p.sendMessage("§r");
-                    p.sendMessage("§6§l⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡");
+                    p.sendMessage(
+                        "§6§l⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡");
                     p.sendMessage("§e§l  🐉 ¡" + owner.getName() +
                         " ha invocado una mascota LEGENDARIA!");
-                    p.sendMessage("§f  Mascota: §6§l" + pet.getName() +
-                        " §f(" + pet.getEntityType().name() + ")");
-                    p.sendMessage("§6§l⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡");
+                    p.sendMessage("§f  Mascota: §6§l" +
+                        pet.getName() + " §f(" +
+                        pet.getEntityType().name() + ")");
+                    p.sendMessage(
+                        "§6§l⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡");
                     p.sendMessage("§r");
                     p.playSound(p.getLocation(),
                         Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
@@ -283,7 +273,7 @@ public class PetManager {
                     if (random < 5) {
                         String[] messages = {
                             "§e¡Te quiero mucho amo! ❤️",
-                            "§a¡Soy la mejor mascota del servidor! 😏✨",
+                            "§a¡Soy la mejor mascota! 😏✨",
                             "§b¡Siempre estaré contigo amo! 🐾",
                             "§d¡Oye amo! ¿Jugamos? 🎮"
                         };
@@ -308,32 +298,6 @@ public class PetManager {
                 }
             }
         }.runTaskTimer(plugin, 10L, 10L);
-    }
-
-    private void startSleepTimer() {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                for (Pet pet : activePets.values()) {
-                    if (!pet.isSummoned() || pet.getEntity() == null) continue;
-                    World world = pet.getEntity().getWorld();
-                    long time = world.getTime();
-                    if (time >= 13000 && time <= 23000) {
-                        if (!pet.isSleeping()) {
-                            pet.setSleeping(true);
-                            Player owner = Bukkit.getPlayer(pet.getOwnerUUID());
-                            if (owner != null) {
-                                owner.sendMessage(
-                                    "§8§l[AdvancedPets] §7" + pet.getName() +
-                                    " §fdice: §8¡Estoy cansado amo... 😴 Zzzz...");
-                            }
-                        }
-                    } else {
-                        pet.setSleeping(false);
-                    }
-                }
-            }
-        }.runTaskTimer(plugin, 100L, 100L);
     }
 
     private void spawnPetParticle(Pet pet) {
@@ -399,7 +363,8 @@ public class PetManager {
                     loc, 5, 0.2, 0.3, 0.2, 0.05);
                 break;
             case RAINBOW:
-                world.spawnParticle(Particle.DUST, loc, 5, 0.3, 0.5, 0.3,
+                world.spawnParticle(Particle.DUST,
+                    loc, 5, 0.3, 0.5, 0.3,
                     new Particle.DustOptions(
                         Color.fromRGB(
                             new Random().nextInt(255),
@@ -505,8 +470,10 @@ public class PetManager {
                     config.getString("birthdayDate", null));
                 pet.setClanName(
                     config.getString("clanName", null));
-                // ✅ Guardar estado summoned para re-spawnear al reconectar
-                pet.setSummoned(config.getBoolean("summoned", false));
+                pet.setSummoned(
+                    config.getBoolean("summoned", false));
+                // ✅ SIEMPRE sleeping = false al cargar
+                pet.setSleeping(false);
                 activePets.put(ownerUUID, pet);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -514,14 +481,14 @@ public class PetManager {
         }
     }
 
-    // ✅ Re-spawnear mascotas cuando el jugador se conecta
     public void respawnPetOnJoin(Player player) {
         Pet pet = activePets.get(player.getUniqueId());
         if (pet == null) return;
         if (pet.isSummoned()) {
-            // Resetear estado y re-spawnear
             pet.setSummoned(false);
             pet.setEntity(null);
+            // ✅ SIEMPRE sleeping = false al respawnear
+            pet.setSleeping(false);
             Bukkit.getScheduler().runTaskLater(plugin, () ->
                 spawnPet(pet, player.getLocation()), 40L);
         }

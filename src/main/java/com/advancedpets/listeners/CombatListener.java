@@ -1,6 +1,7 @@
 package com.advancedpets.listeners;
 
 import com.advancedpets.AdvancedPets;
+import com.advancedpets.gui.UltraShopGUI;
 import com.advancedpets.models.Pet;
 import org.bukkit.*;
 import org.bukkit.entity.*;
@@ -68,8 +69,14 @@ public class CombatListener implements Listener {
             "§c¡GG fácil! ¡Mi amo es el mejor! 🏆",
             "§c¡Eso te pasa por meterte con nosotros! ⚔"
         };
-        owner.sendMessage("§e" + pet.getName() + " §fdice: " + insults[new java.util.Random().nextInt(insults.length)]);
-        owner.getWorld().playSound(owner.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.5f);
+        owner.sendMessage("§e" + pet.getName() + " §fdice: " +
+            insults[new java.util.Random().nextInt(insults.length)]);
+        owner.getWorld().playSound(owner.getLocation(),
+            Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.5f);
+
+        // ✅ EFECTO ULTRA PREMIUM AL MATAR
+        UltraShopGUI.playKillEffect(plugin, owner, killed.getLocation());
+
         plugin.getPetManager().savePet(pet);
     }
 
@@ -85,7 +92,8 @@ public class CombatListener implements Listener {
         world.playSound(loc, Sound.ENTITY_WOLF_WHINE, 1f, 0.6f);
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.getLocation().distance(loc) < 30) {
-                p.sendMessage("§8[AP] §7La mascota de §f" + dead.getName() + " §7llora... 😢💔");
+                p.sendMessage("§8[AP] §7La mascota de §f" + dead.getName() +
+                    " §7llora... 😢💔");
             }
         }
     }
@@ -98,7 +106,8 @@ public class CombatListener implements Listener {
         if (pet == null || !pet.isSummoned()) return;
         if (event.getCause() == EntityDamageEvent.DamageCause.FALL ||
             event.getCause() == EntityDamageEvent.DamageCause.VOID) {
-            player.sendMessage("§e" + pet.getName() + " §fdice: §c¡Amo cuidado! 😱 ¡Estás cayendo!");
+            player.sendMessage("§e" + pet.getName() +
+                " §fdice: §c¡Amo cuidado! 😱 ¡Estás cayendo!");
         }
     }
 
@@ -114,7 +123,8 @@ public class CombatListener implements Listener {
                 Player owner = Bukkit.getPlayer(pet.getOwnerUUID());
                 if (owner != null) {
                     pet.setHealth(Math.max(0, pet.getHealth() - event.getFinalDamage()));
-                    owner.sendMessage("§e" + pet.getName() + " §fdice: §c¡AY! ¡Eso dolió! 😤 ¡Me las pagarás!");
+                    owner.sendMessage("§e" + pet.getName() +
+                        " §fdice: §c¡AY! ¡Eso dolió! 😤 ¡Me las pagarás!");
                     if (pet.getHealth() <= 0 && !pet.isImmortal()) {
                         owner.sendMessage("§c§l[AdvancedPets] §c¡Tu mascota ha muerto! 💀 ¡Revívela!");
                         plugin.getPetManager().despawnPet(pet);

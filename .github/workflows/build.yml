@@ -9,7 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 30
+
     steps:
       - name: ⬇️ Descargar repositorio
         uses: actions/checkout@v4
@@ -21,21 +22,72 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: 📦 Instalar dependencias locales (Spigot)
+      - name: 📦 Cache Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: 📦 Instalar Spigot via BuildTools
         run: |
-          wget -O BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
-          java -jar BuildTools.jar --rev 1.21.1 --compile craftbukkit
-          mvn install:install-file -Dfile=spigot-1.21.1.jar -DgroupId=org.spigotmc -DartifactId=spigot -Dversion=1.21.1-R0.1-SNAPSHOT -Dpackaging=jar
+          mkdir -p ~/buildtools
+          cd ~/buildtools
+          wget -q -O BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
+          git config --global user.email "build@advancedpets.com"
+          git config --global user.name "AdvancedPets Builder"
+          java -jar BuildTools.jar --rev 1.21.1 --compile craftbukkit --nogui 2>&1
+          mvn install:install-file \
+            -Dfile=spigot-1.21.1.jar \
+            -DgroupId=org.spigotmc \
+            -DartifactId=spigot-api \
+            -Dversion=1.21.1-R0.1-SNAPSHOT \
+            -Dpackaging=jar \
+            -DgeneratePom=true
+
+      - name: 📦 Instalar FancyHolograms local
+        run: |
+          wget -q -O FancyHolograms.jar https://github.com/FancyPlugins/FancyHolograms/releases/download/2.3.0/FancyHolograms-2.3.0.jar || true
+          if [ -f FancyHolograms.jar ]; then
+            mvn install:install-file \
+              -Dfile=FancyHolograms.jar \
+              -DgroupId=de.oliver \
+              -DartifactId=FancyHolograms \
+              -Dversion=2.3.0 \
+              -Dpackaging=jar \
+              -DgeneratePom=true
+          fi
+
+      - name: 📦 Instalar ModelEngine local (skip si no está)
+        run: |
+          mvn install:install-file \
+            -Dfile=/dev/null \
+            -DgroupId=com.ticxo.modelengine \
+            -DartifactId=ModelEngine \
+            -Dversion=R4.0.4 \
+            -Dpackaging=jar \
+            -DgeneratePom=true || true
+
+      - name: 📦 Instalar MythicMobs local (skip si no está)
+        run: |
+          mvn install:install-file \
+            -Dfile=/dev/null \
+            -DgroupId=io.lumine \
+            -DartifactId=MythicMobs \
+            -Dversion=5.6.1 \
+            -Dpackaging=jar \
+            -DgeneratePom=true || true
 
       - name: 🔨 Compilar con Maven
-        run: mvn clean package -DskipTests
+        run: mvn clean package -DskipTests --no-transfer-progress
 
-      - name: ✅ Verificar que el JAR existe
+      - name: ✅ Verificar JAR
         run: |
           echo "✅ Archivos generados:"
-          ls -la target/
+          ls -la target/*.jar
 
-      - name: 📤 Subir JAR como artefacto
+      - name: 📤 Subir JAR
         uses: actions/upload-artifact@v4
         with:
           name: AdvancedPets-1.0.0

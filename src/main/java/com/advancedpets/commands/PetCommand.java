@@ -1,0 +1,308 @@
+package com.advancedpets.commands;
+
+import com.advancedpets.AdvancedPets;
+import com.advancedpets.gui.MainGUI;
+import com.advancedpets.gui.ShopGUI;
+import com.advancedpets.models.Pet;
+import org.bukkit.*;
+import org.bukkit.command.*;
+import org.bukkit.entity.*;
+
+import java.util.*;
+
+public class PetCommand implements CommandExecutor, TabCompleter {
+
+    private final AdvancedPets plugin;
+
+    public PetCommand(AdvancedPets plugin) {
+        this.plugin = plugin;
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("§cSolo jugadores pueden usar este comando!");
+            return true;
+        }
+        Player player = (Player) sender;
+
+        if (args.length == 0) {
+            openMainOrShop(player);
+            return true;
+        }
+
+        switch (args[0].toLowerCase()) {
+            case "summon":
+                cmdSummon(player); break;
+            case "dismiss":
+                cmdDismiss(player); break;
+            case "stats":
+                cmdStats(player); break;
+            case "rename":
+                cmdRename(player, args); break;
+            case "shop":
+                new ShopGUI(plugin, player).open(); break;
+            case "mine":
+                cmdWork(player, Pet.WorkType.MINING); break;
+            case "farm":
+                cmdWork(player, Pet.WorkType.FARMING); break;
+            case "harvest":
+                cmdWork(player, Pet.WorkType.HARVEST); break;
+            case "collect":
+                cmdWork(player, Pet.WorkType.COLLECT); break;
+            case "chop":
+                cmdWork(player, Pet.WorkType.CHOP); break;
+            case "evolve":
+                cmdEvolve(player); break;
+            case "top":
+                cmdTop(player); break;
+            case "reload":
+                cmdReload(player); break;
+            case "creator":
+                plugin.getMessageUtils().sendCreatorMessage(player);
+                player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+                player.getWorld().spawnParticle(Particle.FIREWORK, player.getLocation().add(0,1,0), 100, 1,1,1,0.3);
+                break;
+            case "admin":
+                cmdAdmin(player, args); break;
+            default:
+                sendHelp(player); break;
+        }
+        return true;
+    }
+
+    private void openMainOrShop(Player player) {
+        if (plugin.getPetManager().hasPet(player.getUniqueId())) {
+            Pet pet = plugin.getPetManager().getPet(player.getUniqueId());
+            new MainGUI(plugin, pet, player).open();
+        } else {
+            new ShopGUI(plugin, player).open();
+        }
+    }
+
+    private void cmdSummon(Player player) {
+        if (!plugin.getPetManager().hasPet(player.getUniqueId())) {
+            plugin.getMessageUtils().send(player, "&cNo tienes ninguna mascota! Usa &e/ap shop");
+            return;
+        }
+        Pet pet = plugin.getPetManager().getPet(player.getUniqueId());
+        if (pet.isSummoned()) {
+            plugin.getMessageUtils().send(player, "&cTu mascota ya está invocada!");
+            return;
+        }
+        plugin.getPetManager().spawnPet(pet, player.getLocation());
+    }
+
+    private void cmdDismiss(Player player) {
+        if (!plugin.getPetManager().hasPet(player.getUniqueId())) {
+            plugin.getMessageUtils().send(player, "&cNo tienes ninguna mascota!");
+            return;
+        }
+        Pet pet = plugin.getPetManager().getPet(player.getUniqueId());
+        if (!pet.isSummoned()) {
+            plugin.getMessageUtils().send(player, "&cTu mascota no está invocada!");
+            return;
+        }
+        plugin.getPetManager().despawnPet(pet);
+        plugin.getMessageUtils().send(player, "&eMascota guardada correctamente! 📦");
+    }
+
+    private void cmdStats(Player player) {
+        if (!plugin.getPetManager().hasPet(player.getUniqueId())) {
+            plugin.getMessageUtils().send(player, "&cNo tienes ninguna mascota!");
+            return;
+        }
+        Pet pet = plugin.getPetManager().getPet(player.getUniqueId());
+        player.sendMessage("§r");
+        player.sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
+        player.sendMessage("§e§l   📊 STATS DE " + pet.getName().toUpperCase());
+        player.sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
+        player.sendMessage("§f  Nombre:  §e" + pet.getName());
+        player.sendMessage("§f  Tipo:    §e" + pet.getEntityType().name());
+        player.sendMessage("§f  Rareza:  " + pet.getRarityColor() + "§l" + pet.getRarityName());
+        player.sendMessage("§f  Nivel:   §a§l" + pet.getLevel());
+        player.sendMessage("§f  XP:      §b" + (int)pet.getXp() + "§7/§b" + (int)pet.getXpNeeded());
+        player.sendMessage("§f  Vida:    §c" + (int)pet.getHealth() + "§7/§c" + (int)pet.getMaxHealth());
+        player.sendMessage("§f  Daño:    §c" + pet.getDamage());
+        player.sendMessage("§f  Kills:   §c" + pet.getKills());
+        player.sendMessage("§f  Hambre:  §6" + (int)pet.getHunger() + "%");
+        player.sendMessage("§f  Humor:   " + pet.getMoodColor() + pet.getMood().name());
+        player.sendMessage("§f  Trabajo: §a" + pet.getCurrentWork().name());
+        player.sendMessage("§f  Logros:  §6" + plugin.getAchievementManager().getAchievementCount(player.getUniqueId()));
+        player.sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
+        player.sendMessage("§r");
+    }
+
+    private void cmdRename(Player player, String[] args) {
+        if (args.length < 2) {
+            plugin.getMessageUtils().send(player, "&cUso: &e/ap rename <nombre>");
+            return;
+        }
+        if (!plugin.getPetManager().hasPet(player.getUniqueId())) {
+            plugin.getMessageUtils().send(player, "&cNo tienes ninguna mascota!");
+            return;
+        }
+        String name = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+        Pet pet = plugin.getPetManager().getPet(player.getUniqueId());
+        pet.setName(name);
+        plugin.getPetManager().savePet(pet);
+        plugin.getHologramManager().updateHologram(pet);
+        plugin.getMessageUtils().send(player, "&aMascota renombrada a: &e" + name);
+    }
+
+    private void cmdWork(Player player, Pet.WorkType workType) {
+        if (!plugin.getPetManager().hasPet(player.getUniqueId())) {
+            plugin.getMessageUtils().send(player, "&cNo tienes ninguna mascota!");
+            return;
+        }
+        Pet pet = plugin.getPetManager().getPet(player.getUniqueId());
+        if (!pet.isSummoned()) {
+            plugin.getMessageUtils().send(player, "&cPrimero invoca tu mascota con &e/ap summon");
+            return;
+        }
+        plugin.getWorkManager().startWork(pet, workType, player);
+    }
+
+    private void cmdEvolve(Player player) {
+        if (!plugin.getPetManager().hasPet(player.getUniqueId())) {
+            plugin.getMessageUtils().send(player, "&cNo tienes ninguna mascota!");
+            return;
+        }
+        Pet pet = plugin.getPetManager().getPet(player.getUniqueId());
+        if (pet.getRarity() == Pet.Rarity.LEGENDARY) {
+            plugin.getMessageUtils().send(player, "&cTu mascota ya es &6§lLEGENDARIA&c! No puede evolucionar más.");
+            return;
+        }
+        if (pet.getLevel() < 10) {
+            plugin.getMessageUtils().send(player, "&cNecesitas nivel &e10 &cpara evolucionar. Nivel actual: &e" + pet.getLevel());
+            return;
+        }
+        Pet.Rarity next = Pet.Rarity.values()[pet.getRarity().ordinal() + 1];
+        pet.setRarity(next);
+        pet.setLevel(1);
+        pet.setXp(0);
+        pet.setMaxHealth(pet.getMaxHealth() + 20);
+        plugin.getPetManager().savePet(pet);
+        plugin.getHologramManager().updateHologram(pet);
+        player.sendMessage("§r");
+        player.sendMessage("§6§l⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡");
+        player.sendMessage("§e§l   🌟 ¡EVOLUCIÓN COMPLETADA! 🌟");
+        player.sendMessage("§f  Tu mascota ahora es: " + pet.getRarityColor() + "§l" + pet.getRarityName());
+        player.sendMessage("§6§l⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡");
+        player.sendMessage("§r");
+        player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 0.8f);
+        player.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, player.getLocation().add(0,1,0), 200, 1,1,1,0.5);
+    }
+
+    private void cmdTop(Player player) {
+        List<Pet> sorted = new ArrayList<>(plugin.getPetManager().getAllPets().values());
+        sorted.sort((a, b) -> b.getKills() - a.getKills());
+        player.sendMessage("§r");
+        player.sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
+        player.sendMessage("§e§l   🏆 TOP MASCOTAS DEL SERVIDOR");
+        player.sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
+        int pos = 1;
+        for (Pet pet : sorted) {
+            if (pos > 10) break;
+            String medal = pos == 1 ? "§6🥇" : pos == 2 ? "§7🥈" : pos == 3 ? "§c🥉" : "§f#" + pos;
+            player.sendMessage("§f " + medal + " §e" + pet.getName() + " §7(" + pet.getOwnerName() + ") §f- §cKills: " + pet.getKills() + " §f| §aNv." + pet.getLevel());
+            pos++;
+        }
+        player.sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
+        player.sendMessage("§r");
+    }
+
+    private void cmdReload(Player player) {
+        if (!player.hasPermission("advancedpets.admin.reload")) {
+            plugin.getMessageUtils().sendNoPermission(player);
+            return;
+        }
+        plugin.reloadConfig();
+        plugin.getMessageUtils().send(player, "&aPlugin recargado correctamente! ✔");
+    }
+
+    private void cmdAdmin(Player player, String[] args) {
+        if (!player.hasPermission("advancedpets.admin")) {
+            plugin.getMessageUtils().sendNoPermission(player);
+            return;
+        }
+        if (args.length < 2) { sendAdminHelp(player); return; }
+        switch (args[1].toLowerCase()) {
+            case "give":
+                if (args.length < 4) {
+                    plugin.getMessageUtils().send(player, "&cUso: &e/ap admin give <jugador> <tipo> [rareza]");
+                    return;
+                }
+                Player target = Bukkit.getPlayer(args[2]);
+                if (target == null) {
+                    plugin.getMessageUtils().send(player, "&cJugador no encontrado!");
+                    return;
+                }
+                try {
+                    EntityType type = EntityType.valueOf(args[3].toUpperCase());
+                    Pet.Rarity rarity = args.length >= 5 ?
+                        Pet.Rarity.valueOf(args[4].toUpperCase()) : Pet.Rarity.COMMON;
+                    Pet newPet = new Pet(target.getUniqueId(), target.getName(), target.getName() + "'s Pet", type, rarity);
+                    plugin.getPetManager().addPet(newPet);
+                    plugin.getMessageUtils().send(player, "&aMascota &e" + type.name() + " &adada a &e" + target.getName());
+                    plugin.getMessageUtils().send(target, "&a¡El admin te dio una mascota &e" + type.name() + "&a!");
+                } catch (Exception e) {
+                    plugin.getMessageUtils().send(player, "&cTipo o rareza inválida!");
+                }
+                break;
+            case "particles":
+                if (args.length >= 3 && args[2].equalsIgnoreCase("off")) {
+                    plugin.getConfig().set("particles.global", false);
+                    plugin.saveConfig();
+                    plugin.getMessageUtils().send(player, "&cPartículas globales desactivadas!");
+                } else {
+                    plugin.getConfig().set("particles.global", true);
+                    plugin.saveConfig();
+                    plugin.getMessageUtils().send(player, "&aPartículas globales activadas!");
+                }
+                break;
+            default:
+                sendAdminHelp(player); break;
+        }
+    }
+
+    private void sendHelp(Player player) {
+        player.sendMessage("§r");
+        player.sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
+        player.sendMessage("§e§l   🐾 ADVANCED PETS — AYUDA");
+        player.sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
+        player.sendMessage("§e/ap §f— Abre el menú principal");
+        player.sendMessage("§e/ap summon §f— Invocar mascota");
+        player.sendMessage("§e/ap dismiss §f— Guardar mascota");
+        player.sendMessage("§e/ap stats §f— Ver estadísticas");
+        player.sendMessage("§e/ap rename <nombre> §f— Renombrar");
+        player.sendMessage("§e/ap shop §f— Tienda de mascotas");
+        player.sendMessage("§e/ap mine §f— Ordenar minar");
+        player.sendMessage("§e/ap farm §f— Ordenar farmear");
+        player.sendMessage("§e/ap harvest §f— Ordenar cosechar");
+        player.sendMessage("§e/ap collect §f— Recoger items");
+        player.sendMessage("§e/ap evolve §f— Evolucionar mascota");
+        player.sendMessage("§e/ap top §f— Ranking del servidor");
+        player.sendMessage("§e/ap creator §f— Ver el creador");
+        player.sendMessage("§6§l✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦✦");
+        player.sendMessage("§r");
+    }
+
+    private void sendAdminHelp(Player player) {
+        player.sendMessage("§c§l[Admin] §e/ap admin give <jugador> <tipo> [rareza]");
+        player.sendMessage("§c§l[Admin] §e/ap admin particles <on/off>");
+        player.sendMessage("§c§l[Admin] §e/ap reload");
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> completions = new ArrayList<>();
+        if (args.length == 1) {
+            completions.addAll(Arrays.asList("summon","dismiss","stats","rename","shop",
+                "mine","farm","harvest","collect","chop","evolve","top","reload","creator","admin"));
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("admin")) {
+            completions.addAll(Arrays.asList("give","particles","reload"));
+        }
+        return completions;
+    }
+}

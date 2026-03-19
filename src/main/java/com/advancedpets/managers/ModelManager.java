@@ -2,18 +2,9 @@ package com.advancedpets.managers;
 
 import com.advancedpets.AdvancedPets;
 import com.advancedpets.models.Pet;
-import com.ticxo.modelengine.api.ModelEngineAPI;
-import com.ticxo.modelengine.api.model.ActiveModel;
-import com.ticxo.modelengine.api.model.BlueprintModel;
-import com.ticxo.modelengine.api.model.ModeledEntity;
-import io.lumine.mythic.bukkit.MythicBukkit;
-import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
 import org.bukkit.*;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.*;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
@@ -22,11 +13,9 @@ public class ModelManager implements Listener {
 
     private final AdvancedPets plugin;
     private final Map<UUID, String> petModels = new HashMap<>();
-    private final Map<UUID, ActiveModel> activeModels = new HashMap<>();
     private boolean modelEngineEnabled = false;
     private boolean mythicMobsEnabled = false;
 
-    // Modelos default por EntityType
     private static final Map<String, String> DEFAULT_MODELS = new HashMap<>();
 
     static {
@@ -56,7 +45,7 @@ public class ModelManager implements Listener {
         DEFAULT_MODELS.put("SKELETON", "advpet_skeleton");
         DEFAULT_MODELS.put("ZOMBIE", "advpet_zombie");
         DEFAULT_MODELS.put("CREEPER", "advpet_creeper");
-        DEFAULT_MODELS.put("BLAZE", "advpet_blaze");
+        DEFAULT_MODELS.put("BLAZE", "advpet_phoenix");
         DEFAULT_MODELS.put("ENDERMAN", "advpet_enderman");
         DEFAULT_MODELS.put("WITCH", "advpet_witch");
         DEFAULT_MODELS.put("GUARDIAN", "advpet_guardian");
@@ -78,7 +67,6 @@ public class ModelManager implements Listener {
         this.plugin = plugin;
         Bukkit.getPluginManager().registerEvents(this, plugin);
         checkDependencies();
-        startAnimationTimer();
         startParticleTimer();
     }
 
@@ -86,49 +74,44 @@ public class ModelManager implements Listener {
         if (Bukkit.getPluginManager().getPlugin("ModelEngine") != null
             && plugin.getConfig().getBoolean("modelengine.enabled", true)) {
             modelEngineEnabled = true;
-            plugin.getLogger().info("§aModelEngine detectado y conectado!");
+            plugin.getLogger().info("ModelEngine detectado y conectado!");
         } else {
-            plugin.getLogger().warning("§eModelEngine no encontrado. Modelos custom desactivados.");
+            plugin.getLogger().warning("ModelEngine no encontrado. Modelos custom desactivados.");
         }
         if (Bukkit.getPluginManager().getPlugin("MythicMobs") != null
             && plugin.getConfig().getBoolean("mythicmobs.enabled", true)) {
             mythicMobsEnabled = true;
-            plugin.getLogger().info("§aMythicMobs detectado y conectado!");
+            plugin.getLogger().info("MythicMobs detectado y conectado!");
         } else {
-            plugin.getLogger().warning("§eMythicMobs no encontrado.");
+            plugin.getLogger().warning("MythicMobs no encontrado.");
         }
     }
 
-    // ─── APLICAR MODELO ───────────────────────────────────────────────
-
     public void applyModel(Pet pet, String modelId) {
-        if (!modelEngineEnabled) return;
+        if (!modelEngineEnabled) {
+            Player owner = Bukkit.getPlayer(pet.getOwnerUUID());
+            if (owner != null)
+                owner.sendMessage("§c§l[AdvancedPets] §cModelEngine no está instalado en el servidor!");
+            return;
+        }
         if (pet.getEntity() == null || !pet.isSummoned()) return;
-
-        removeModel(pet);
-
         try {
-            BlueprintModel blueprint = ModelEngineAPI.getBlueprint(modelId);
+            Class<?> apiClass = Class.forName("com.ticxo.modelengine.api.ModelEngineAPI");
+            Object blueprint = apiClass.getMethod("getBlueprint", String.class).invoke(null, modelId);
             if (blueprint == null) {
                 plugin.getLogger().warning("Modelo no encontrado: " + modelId);
                 return;
             }
-            ModeledEntity modeledEntity = ModelEngineAPI.getOrCreateModeledEntity(pet.getEntity());
-            ActiveModel activeModel = ModelEngineAPI.createActiveModel(blueprint);
-            modeledEntity.addModel(activeModel, true);
-            activeModels.put(pet.getPetUUID(), activeModel);
+            Object modeledEntity = apiClass.getMethod("getOrCreateModeledEntity",
+                org.bukkit.entity.Entity.class).invoke(null, pet.getEntity());
+            Object activeModel = apiClass.getMethod("createActiveModel", blueprint.getClass())
+                .invoke(null, blueprint);
+            modeledEntity.getClass().getMethod("addModel", activeModel.getClass(), boolean.class)
+                .invoke(modeledEntity, activeModel, true);
             petModels.put(pet.getPetUUID(), modelId);
-
-            // Aplicar animación idle
-            playAnimation(pet, "idle", true);
-
-            // Aplicar aura según rareza
-            applyRarityEffect(pet);
-
             Player owner = Bukkit.getPlayer(pet.getOwnerUUID());
-            if (owner != null) {
-                owner.sendMessage("§d§l[AdvancedPets] §f✨ Modelo §d§l" + modelId + " §faplicado a tu mascota!");
-            }
+            if (owner != null)
+                owner.sendMessage("§d§l[AdvancedPets] §f✨ Modelo §d§l" + modelId + " §faplicado!");
         } catch (Exception e) {
             plugin.getLogger().warning("Error al aplicar modelo " + modelId + ": " + e.getMessage());
         }
@@ -144,15 +127,17 @@ public class ModelManager implements Listener {
     }
 
     public void removeModel(Pet pet) {
-        if (!modelEngineEnabled) return;
-        if (pet.getEntity() == null) return;
+        if (!modelEngineEnabled || pet.getEntity() == null) return;
         try {
-            ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(pet.getEntity());
+            Class<?> apiClass = Class.forName("com.ticxo.modelengine.api.ModelEngineAPI");
+            Object modeledEntity = apiClass.getMethod("getModeledEntity",
+                org.bukkit.entity.Entity.class).invoke(null, pet.getEntity());
             if (modeledEntity != null) {
                 String currentModel = petModels.get(pet.getPetUUID());
-                if (currentModel != null) modeledEntity.removeModel(currentModel);
+                if (currentModel != null)
+                    modeledEntity.getClass().getMethod("removeModel", String.class)
+                        .invoke(modeledEntity, currentModel);
             }
-            activeModels.remove(pet.getPetUUID());
             petModels.remove(pet.getPetUUID());
         } catch (Exception e) {
             plugin.getLogger().warning("Error al remover modelo: " + e.getMessage());
@@ -163,109 +148,71 @@ public class ModelManager implements Listener {
         for (Pet pet : plugin.getPetManager().getAllPets().values()) {
             removeModel(pet);
         }
+        petModels.clear();
     }
 
-    // ─── ANIMACIONES ──────────────────────────────────────────────────
-
-    public void playAnimation(Pet pet, String animationName, boolean loop) {
-        if (!modelEngineEnabled) return;
-        ActiveModel model = activeModels.get(pet.getPetUUID());
-        if (model == null) return;
+    public void playAnimation(Pet pet, String animationName) {
+        if (!modelEngineEnabled || pet.getEntity() == null) return;
         try {
-            model.getAnimationHandler().playAnimation(animationName, 0.1, 0.1, 1.0, loop);
+            Class<?> apiClass = Class.forName("com.ticxo.modelengine.api.ModelEngineAPI");
+            Object modeledEntity = apiClass.getMethod("getModeledEntity",
+                org.bukkit.entity.Entity.class).invoke(null, pet.getEntity());
+            if (modeledEntity == null) return;
+            String modelId = petModels.get(pet.getPetUUID());
+            if (modelId == null) return;
+            Object model = modeledEntity.getClass()
+                .getMethod("getModel", String.class).invoke(modeledEntity, modelId);
+            if (model == null) return;
+            Object animHandler = model.getClass().getMethod("getAnimationHandler").invoke(model);
+            animHandler.getClass().getMethod("playAnimation",
+                String.class, double.class, double.class, double.class, boolean.class)
+                .invoke(animHandler, animationName, 0.1, 0.1, 1.0, true);
         } catch (Exception e) {
-            // Animación no disponible, ignorar
-        }
-    }
-
-    public void stopAnimation(Pet pet, String animationName) {
-        if (!modelEngineEnabled) return;
-        ActiveModel model = activeModels.get(pet.getPetUUID());
-        if (model == null) return;
-        try {
-            model.getAnimationHandler().stopAnimation(animationName);
-        } catch (Exception e) {
-            // ignorar
-        }
-    }
-
-    public void updateAnimation(Pet pet) {
-        if (!modelEngineEnabled) return;
-        if (pet.getEntity() == null || !pet.isSummoned()) return;
-
-        if (pet.isSleeping()) {
-            playAnimation(pet, "sleep", true);
-            return;
-        }
-
-        switch (pet.getCurrentWork()) {
-            case MINING:
-                playAnimation(pet, "mine", true); break;
-            case FARMING:
-            case ATTACK:
-            case PVP:
-                playAnimation(pet, "attack", true); break;
-            case HARVEST:
-                playAnimation(pet, "harvest", true); break;
-            case CHOP:
-                playAnimation(pet, "chop", true); break;
-            case COOK:
-                playAnimation(pet, "cook", true); break;
-            case EXPLORE:
-                playAnimation(pet, "walk", true); break;
-            default:
-                // Seguir al amo
-                Player owner = Bukkit.getPlayer(pet.getOwnerUUID());
-                if (owner != null) {
-                    double dist = pet.getEntity().getLocation().distance(owner.getLocation());
-                    if (dist > 3) playAnimation(pet, "walk", true);
-                    else playAnimation(pet, "idle", true);
-                }
-                break;
+            // Animacion no disponible, ignorar silenciosamente
         }
     }
 
     public void playLevelUpAnimation(Pet pet) {
-        if (!modelEngineEnabled) return;
-        playAnimation(pet, "levelup", false);
+        playAnimation(pet, "levelup");
         Bukkit.getScheduler().runTaskLater(plugin, () ->
-            playAnimation(pet, "idle", true), 60L);
+            playAnimation(pet, "idle"), 60L);
     }
 
     public void playDanceAnimation(Pet pet) {
-        if (!modelEngineEnabled) return;
-        playAnimation(pet, "dance", false);
+        playAnimation(pet, "dance");
         Bukkit.getScheduler().runTaskLater(plugin, () ->
-            playAnimation(pet, "idle", true), 100L);
+            playAnimation(pet, "idle"), 100L);
     }
 
     public void playEatAnimation(Pet pet) {
-        if (!modelEngineEnabled) return;
-        playAnimation(pet, "eat", false);
+        playAnimation(pet, "eat");
         Bukkit.getScheduler().runTaskLater(plugin, () ->
-            playAnimation(pet, "idle", true), 40L);
+            playAnimation(pet, "idle"), 40L);
     }
 
     public void playAttackAnimation(Pet pet) {
-        if (!modelEngineEnabled) return;
-        playAnimation(pet, "attack", false);
+        playAnimation(pet, "attack");
         Bukkit.getScheduler().runTaskLater(plugin, () ->
-            playAnimation(pet, "idle", true), 20L);
+            playAnimation(pet, "idle"), 20L);
     }
 
-    public void playDeathAnimation(Pet pet) {
-        if (!modelEngineEnabled) return;
-        playAnimation(pet, "death", false);
+    private void startParticleTimer() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Pet pet : plugin.getPetManager().getAllPets().values()) {
+                    if (!pet.isSummoned() || pet.getEntity() == null) continue;
+                    if (pet.getRarity() == Pet.Rarity.COMMON) continue;
+                    applyRarityParticles(pet);
+                }
+            }
+        }.runTaskTimer(plugin, 10L, 10L);
     }
 
-    // ─── EFECTOS DE PARTÍCULAS EN EL MODELO ──────────────────────────
-
-    private void applyRarityEffect(Pet pet) {
-        if (pet.getEntity() == null) return;
+    private void applyRarityParticles(Pet pet) {
         Location loc = pet.getEntity().getLocation().add(0, 1, 0);
         World world = loc.getWorld();
         if (world == null) return;
-
         switch (pet.getRarity()) {
             case RARE:
                 world.spawnParticle(Particle.DUST, loc, 5, 0.3, 0.5, 0.3,
@@ -287,72 +234,22 @@ public class ModelManager implements Listener {
         }
     }
 
-    private void startParticleTimer() {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                for (Pet pet : plugin.getPetManager().getAllPets().values()) {
-                    if (!pet.isSummoned() || pet.getEntity() == null) continue;
-                    if (pet.getRarity() == Pet.Rarity.COMMON) continue;
-                    applyRarityEffect(pet);
-                }
-            }
-        }.runTaskTimer(plugin, 10L, 10L);
+    public List<String> getAvailableModels() {
+        List<String> models = new ArrayList<>(DEFAULT_MODELS.values());
+        if (plugin.getConfig().getConfigurationSection("modelengine.default-models") != null) {
+            models.addAll(plugin.getConfig()
+                .getConfigurationSection("modelengine.default-models").getValues(false).values()
+                .stream().map(Object::toString).collect(java.util.stream.Collectors.toList()));
+        }
+        return new ArrayList<>(new LinkedHashSet<>(models));
     }
-
-    private void startAnimationTimer() {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                for (Pet pet : plugin.getPetManager().getAllPets().values()) {
-                    if (!pet.isSummoned() || pet.getEntity() == null) continue;
-                    updateAnimation(pet);
-                }
-            }
-        }.runTaskTimer(plugin, 20L, 20L);
-    }
-
-    // ─── MYTHICMOBS INTEGRATION ───────────────────────────────────────
-
-    @EventHandler
-    public void onMythicMobDeath(MythicMobDeathEvent event) {
-        if (!mythicMobsEnabled) return;
-        Entity killer = event.getKiller();
-        if (!(killer instanceof Player)) return;
-        Player player = (Player) killer;
-        Pet pet = plugin.getPetManager().getPet(player.getUniqueId());
-        if (pet == null) return;
-        pet.addXP(plugin.getConfig().getDouble("xp.per-kill", 10) * 2);
-        pet.setKills(pet.getKills() + 1);
-        player.sendMessage("§6§l[AdvancedPets] §e" + pet.getName() +
-            " §fmató un MythicMob! §6+XP DOBLE 🌟");
-        plugin.getPetManager().savePet(pet);
-        plugin.getAchievementManager().checkAchievements(player, pet);
-    }
-
-    // ─── GETTERS ──────────────────────────────────────────────────────
-
-    public boolean isModelEngineEnabled() { return modelEngineEnabled; }
-    public boolean isMythicMobsEnabled() { return mythicMobsEnabled; }
 
     public String getActiveModel(Pet pet) {
         return petModels.getOrDefault(pet.getPetUUID(), "Ninguno");
     }
 
-    public List<String> getAvailableModels() {
-        List<String> models = new ArrayList<>();
-        if (!modelEngineEnabled) return models;
-        try {
-            for (BlueprintModel blueprint : ModelEngineAPI.getBlueprints().values()) {
-                models.add(blueprint.getName());
-            }
-        } catch (Exception e) {
-            plugin.getLogger().warning("Error al obtener modelos: " + e.getMessage());
-        }
-        return models;
-    }
-
-    public static Map<String, String> getDefaultModels() {
-        return DEFAULT_MODELS;
-    }
+    public boolean isModelEngineEnabled() { return modelEngineEnabled; }
+    public boolean isMythicMobsEnabled() { return mythicMobsEnabled; }
+    public static Map<String, String> getDefaultModels() { return DEFAULT_MODELS; }
 }
+

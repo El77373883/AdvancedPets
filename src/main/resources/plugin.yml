@@ -1,0 +1,69 @@
+name: AdvancedPets
+version: 1.0.0
+main: com.advancedpets.AdvancedPets
+api-version: '1.21'
+author: soyadrianyt001
+description: El plugin de mascotas mas PERRON del servidor
+website: https://github.com/soyadrianyt001
+
+depend:
+  - Vault
+  - ProtocolLib
+  - FancyHolograms
+
+softdepend:
+  - PlaceholderAPI
+  - EssentialsX
+
+commands:
+  ap:
+    description: Comando principal de AdvancedPets
+    usage: /ap
+    aliases: [pets, mascota]
+
+permissions:
+  advancedpets.use:
+    description: Usar el plugin de mascotas
+    default: true
+  advancedpets.shop:
+    description: Acceder a la tienda
+    default: true
+  advancedpets.summon:
+    description: Invocar mascota
+    default: true
+  advancedpets.top:
+    description: Ver ranking
+    default: true
+  advancedpets.inspect:
+    description: Inspeccionar mascotas ajenas
+    default: true
+  advancedpets.adopt:
+    description: Adoptar/regalar mascotas
+    default: true
+  advancedpets.bet:
+    description: Apostar mascotas
+    default: true
+  advancedpets.rent:
+    description: Alquilar mascotas
+    default: true
+  advancedpets.admin:
+    description: Comandos de administrador
+    default: op
+  advancedpets.admin.give:
+    description: Dar mascotas a jugadores
+    default: op
+  advancedpets.admin.reload:
+    description: Recargar configuracion
+    default: op
+  advancedpets.admin.particles:
+    description: Controlar particulas globalmente
+    default: op
+  advancedpets.legendary:
+    description: Comprar mascotas legendarias
+    default: true
+  advancedpets.epic:
+    description: Comprar mascotas epicas
+    default: true
+  advancedpets.rare:
+    description: Comprar mascotas raras
+    default: true
